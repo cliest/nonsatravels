@@ -1,0 +1,41 @@
+{
+  "name": "Nonsa Travels",
+  "short_name": "NonsaTravels",
+  "description": "Premium hotel booking platform for unforgettable travel experiences",
+  "theme_color": "#6366f1",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["travel", "lifestyle", "shopping"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Browse Hotels",
+      "short_name": "Hotels",
+      "description": "Browse all available hotels",
+      "url": "/hotels"
+    },
+    {
+      "name": "My Bookings",
+      "short_name": "Bookings",
+      "description": "View your bookings",
+      "url": "/my-bookings"
+    }
+  ]
+}
