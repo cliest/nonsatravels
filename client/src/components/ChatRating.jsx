@@ -6,7 +6,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import PropTypes from 'prop-types';
 
-const ChatRating = ({ chatId, onRated }) => {
+const ChatRating = ({ chatId, guestId, onRated }) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -27,14 +27,15 @@ const ChatRating = ({ chatId, onRated }) => {
       await api.post(`/chat/${chatId}/rate`, {
         score: rating,
         feedback: feedback.trim(),
+        ...(guestId && { guestId }),
       });
 
       toast.success('Thank you for your feedback!');
       setHasRated(true);
-      
+
       // Send transcript automatically after rating
       try {
-        await api.post(`/chat/${chatId}/transcript`);
+        await api.post(`/chat/${chatId}/transcript`, guestId ? { guestId } : {});
         toast.success('Chat transcript sent to your email');
       } catch (error) {
         // Silent fail - transcript is optional
@@ -105,6 +106,7 @@ const ChatRating = ({ chatId, onRated }) => {
 
 ChatRating.propTypes = {
   chatId: PropTypes.string.isRequired,
+  guestId: PropTypes.string,
   onRated: PropTypes.func,
 };
 

@@ -2,11 +2,50 @@ import prisma from '../lib/prisma.js';
 
 const chatInclude = { messages: { orderBy: { timestamp: 'asc' } } };
 
+// Returns a guest identifier from the request (body for POST/PATCH, query for GET)
+const getGuestId = (req) => req.body?.guestId || req.query?.guestId;
+
+// Resolves the identity of the requester, whether a signed-in user or a guest
+const resolveIdentity = (req) => {
+  if (req.user) {
+    return {
+      userId: req.user.id,
+      userName: req.user.fullName || 'User',
+      userEmail: req.user.email,
+    };
+  }
+
+  const guestId = getGuestId(req);
+  if (!guestId) return null;
+
+  return {
+    userId: `guest_${guestId}`,
+    userName: req.body?.userName?.trim() || 'Guest',
+    userEmail: req.body?.userEmail?.trim() || '',
+  };
+};
+
+// Checks whether the requester (signed-in user, admin, or guest) owns the chat
+const isOwner = (chat, req) => {
+  if (req.user) {
+    return req.user.role === 'admin' || chat.userId === req.user.id;
+  }
+  const guestId = getGuestId(req);
+  return !!guestId && chat.userId === `guest_${guestId}`;
+};
+
 export const getUserChat = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userName = req.user.fullName;
-    const userEmail = req.user.email;
+    if (!req.user && (!req.body.userName?.trim() || !req.body.userEmail?.trim())) {
+      return res.status(400).json({ success: false, message: 'Name and email are required to start a chat' });
+    }
+
+    const identity = resolveIdentity(req);
+    if (!identity) {
+      return res.status(400).json({ success: false, message: 'guestId is required to start a chat' });
+    }
+
+    const { userId, userName, userEmail } = identity;
 
     let chat = await prisma.chat.findFirst({
       where: { userId, status: { not: 'closed' } },
@@ -57,7 +96,7 @@ export const getChatById = async (req, res) => {
     const chat = await prisma.chat.findUnique({ where: { id: req.params.chatId }, include: chatInclude });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
-    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+    if (!isOwner(chat, req)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
     }
 
@@ -78,19 +117,19 @@ export const sendMessage = async (req, res) => {
     if (!['user', 'admin'].includes(sender)) {
       return res.status(400).json({ success: false, message: 'Invalid sender' });
     }
-    if (sender === 'admin' && req.user.role !== 'admin') {
+    if (sender === 'admin' && req.user?.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized to send as admin' });
     }
 
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
-    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+    if (!isOwner(chat, req)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
     }
 
-    const senderName = req.user.fullName;
-    const senderId = req.user.id;
+    const senderName = req.user ? req.user.fullName : chat.userName;
+    const senderId = req.user ? req.user.id : chat.userId;
 
     await prisma.chatMessage.create({
       data: { chatId, sender, senderName, senderId, message, timestamp: new Date(), read: false },
@@ -119,7 +158,7 @@ export const markMessagesAsRead = async (req, res) => {
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
-    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+    if (!isOwner(chat, req)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
     }
 
@@ -193,7 +232,7 @@ export const rateChat = async (req, res) => {
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
-    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+    if (!isOwner(chat, req)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
     }
 
@@ -215,7 +254,7 @@ export const sendChatTranscript = async (req, res) => {
     const chat = await prisma.chat.findUnique({ where: { id: chatId }, include: chatInclude });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
-    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+    if (!isOwner(chat, req)) {
       return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
     }
 

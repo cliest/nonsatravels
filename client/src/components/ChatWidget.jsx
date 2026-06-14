@@ -14,7 +14,7 @@ import { getSocket, initializeSocket } from '../services/socket';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import ChatRating from './ChatRating';
-import { getInitials, getAvatarColor, formatDateSeparator, isSameDay } from '../utils/chatHelpers';
+import { getInitials, getAvatarColor, formatDateSeparator, isSameDay, getOrCreateGuestId } from '../utils/chatHelpers';
 
 // WhatsApp Business number for Nonsa Travels
 const WHATSAPP_NUMBER = '260970462777';
@@ -33,15 +33,41 @@ const ChatWidget = () => {
   const [adminOnline, setAdminOnline] = useState(false);
   const [noResponseTimer, setNoResponseTimer] = useState(null);
   const [showWhatsAppSuggestion, setShowWhatsAppSuggestion] = useState(false);
+  const [guestId] = useState(() => (isSignedIn ? null : getOrCreateGuestId()));
+  const [guestInfo, setGuestInfo] = useState(() => {
+    if (isSignedIn) return null;
+    const name = localStorage.getItem('nonsa_guest_name');
+    const email = localStorage.getItem('nonsa_guest_email');
+    return name && email ? { name, email } : null;
+  });
+  const [guestForm, setGuestForm] = useState({ name: '', email: '' });
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const socketRef = useRef(null);
 
+  // Display name and identifier for the current visitor, whether signed in or a guest
+  const senderName = isSignedIn ? (user?.fullName || user?.firstName || 'Guest') : (guestInfo?.name || 'Guest');
+  const senderId = isSignedIn ? user?.id : guestId;
+
   // Open WhatsApp with pre-filled message
   const openWhatsApp = (customMessage) => {
-    const message = customMessage || `Hi! I'm ${user?.fullName || 'a visitor'} from nonsatravels.com. I need assistance.`;
+    const message = customMessage || `Hi! I'm ${senderName} from nonsatravels.com. I need assistance.`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`, '_blank');
+  };
+
+  // Save guest details and start a chat session
+  const handleGuestFormSubmit = (e) => {
+    e.preventDefault();
+    const name = guestForm.name.trim();
+    const email = guestForm.email.trim();
+    if (!name || !email) {
+      toast.error('Please enter your name and email');
+      return;
+    }
+    localStorage.setItem('nonsa_guest_name', name);
+    localStorage.setItem('nonsa_guest_email', email);
+    setGuestInfo({ name, email });
   };
 
   // Scroll to bottom of messages
@@ -55,19 +81,20 @@ const ChatWidget = () => {
 
   // Initialize chat session
   const initializeChat = useCallback(async () => {
-    if (!isSignedIn || !user) return;
+    if (isSignedIn && !user) return;
+    if (!isSignedIn && !guestInfo) return;
 
     try {
-      const response = await api.post('/chat/session', {
-        userId: user.id,
-        userName: user.fullName || user.firstName || 'Guest',
-        userEmail: user.email || '',
-      });
+      const body = isSignedIn
+        ? { userName: user.fullName || user.firstName || 'Guest', userEmail: user.email || '' }
+        : { guestId, userName: guestInfo.name, userEmail: guestInfo.email };
+
+      const response = await api.post('/chat/session', body);
 
       if (response.data.success) {
         setChatId(response.data.data.id);
         setMessages(response.data.data.messages || []);
-        
+
         // Mark admin messages as read when opening chat
         const unreadAdminMessages = response.data.data.messages.filter(
           (msg) => msg.sender === 'admin' && !msg.read
@@ -77,11 +104,11 @@ const ChatWidget = () => {
     } catch (error) {
       toast.error('Failed to start chat');
     }
-  }, [isSignedIn, user]);
+  }, [isSignedIn, user, guestInfo, guestId]);
 
   // Initialize Socket.IO
   useEffect(() => {
-    if (!isSignedIn || !chatId) return;
+    if (!chatId || !senderId) return;
 
     const socket = initializeSocket();
     socketRef.current = socket;
@@ -90,7 +117,7 @@ const ChatWidget = () => {
       setIsConnected(true);
       socket.emit('join-chat', {
         chatId,
-        userId: user.id,
+        userId: senderId,
         isAdmin: false,
       });
     });
@@ -169,7 +196,7 @@ const ChatWidget = () => {
         socketRef.current.off('status-updated');
       }
     };
-  }, [isSignedIn, chatId, user, isOpen]);
+  }, [chatId, senderId, isOpen]);
 
   // Open chat and mark messages as read
   const handleOpenChat = () => {
@@ -193,8 +220,8 @@ const ChatWidget = () => {
     const messageData = {
       chatId,
       sender: 'user',
-      senderName: user.fullName || user.firstName || 'Guest',
-      senderId: user.id,
+      senderName,
+      senderId,
       message: inputMessage.trim(),
     };
 
@@ -225,7 +252,7 @@ const ChatWidget = () => {
 
     socketRef.current.emit('typing', {
       chatId,
-      userName: user.fullName || user.firstName || 'Guest',
+      userName: senderName,
       isAdmin: false,
     });
 
@@ -240,16 +267,15 @@ const ChatWidget = () => {
     }, 1000);
   };
 
-  // Initialize chat when user signs in
+  // Initialize chat once the visitor's identity is known (signed-in user or guest)
   useEffect(() => {
-    if (isSignedIn && !chatId) {
+    if (chatId) return;
+    if (isSignedIn && user) {
+      initializeChat();
+    } else if (!isSignedIn && guestInfo) {
       initializeChat();
     }
-  }, [isSignedIn, chatId, initializeChat]);
-
-  if (!isSignedIn) {
-    return null;
-  }
+  }, [isSignedIn, user, guestInfo, chatId, initializeChat]);
 
   return (
     <>
@@ -306,13 +332,44 @@ const ChatWidget = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {showRating ? (
-              <ChatRating 
-                chatId={chatId} 
+            {!isSignedIn && !guestInfo ? (
+              <div className="animate-fade-in">
+                <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FontAwesomeIcon icon={faComments} className="text-3xl text-primary" />
+                </div>
+                <p className="font-semibold text-gray-700 text-center mb-1">Start a conversation</p>
+                <p className="text-sm text-gray-500 text-center mb-4">Tell us a bit about yourself so we can get back to you.</p>
+                <form onSubmit={handleGuestFormSubmit} className="space-y-3">
+                  <input
+                    type="text"
+                    value={guestForm.name}
+                    onChange={(e) => setGuestForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="Your name"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm bg-white"
+                  />
+                  <input
+                    type="email"
+                    value={guestForm.email}
+                    onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))}
+                    placeholder="Your email"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm bg-white"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-primary text-white py-2.5 rounded-xl transition-all hover:shadow-lg font-semibold text-sm"
+                  >
+                    Start Chat
+                  </button>
+                </form>
+              </div>
+            ) : showRating ? (
+              <ChatRating
+                chatId={chatId}
+                guestId={guestId}
                 onRated={() => {
                   setShowRating(false);
                   setIsOpen(false);
-                }} 
+                }}
               />
             ) : messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-4 animate-fade-in">

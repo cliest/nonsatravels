@@ -10,17 +10,17 @@ import {
   rateChat,
   sendChatTranscript,
 } from '../controllers/chatController.js';
-import { verifyAuth, requireAdmin } from '../middleware/auth.js';
+import { verifyAuth, optionalAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// User routes
-router.post('/session', verifyAuth, getUserChat);
-router.get('/:chatId', verifyAuth, getChatById);
-router.post('/:chatId/messages', verifyAuth, sendMessage);
-router.patch('/:chatId/read', verifyAuth, markMessagesAsRead);
-router.post('/:chatId/rate', verifyAuth, rateChat);
-router.post('/:chatId/transcript', verifyAuth, sendChatTranscript);
+// User routes - optionalAuth allows both signed-in users and guests (identified via guestId)
+router.post('/session', optionalAuth, getUserChat);
+router.get('/:chatId', optionalAuth, getChatById);
+router.post('/:chatId/messages', optionalAuth, sendMessage);
+router.patch('/:chatId/read', optionalAuth, markMessagesAsRead);
+router.post('/:chatId/rate', optionalAuth, rateChat);
+router.post('/:chatId/transcript', optionalAuth, sendChatTranscript);
 
 // Admin routes
 router.get('/', verifyAuth, requireAdmin, getAllChats);

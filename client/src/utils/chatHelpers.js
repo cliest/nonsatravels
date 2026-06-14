@@ -44,3 +44,17 @@ export const formatDateSeparator = (date) => {
 };
 
 export const isSameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+
+const GUEST_ID_KEY = 'nonsa_guest_id';
+
+// Returns a persistent anonymous identifier for guests using the chat widget
+export const getOrCreateGuestId = () => {
+  let id = localStorage.getItem(GUEST_ID_KEY);
+  if (!id) {
+    id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `g_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(GUEST_ID_KEY, id);
+  }
+  return id;
+};
