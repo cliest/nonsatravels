@@ -7,13 +7,17 @@ import {
   faCircle,
   faCheck,
   faCheckDouble,
-  faUserCircle,
   faBolt,
   faEnvelope,
+  faSearch,
+  faRotateLeft,
+  faGear,
 } from '@fortawesome/free-solid-svg-icons';
 import { initializeSocket } from '../services/socket';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { getInitials, getAvatarColor, formatDateSeparator, isSameDay } from '../utils/chatHelpers';
+import CannedResponseManager from './CannedResponseManager';
 
 const AdminChatDashboard = () => {
   const { user } = useUser();
@@ -27,6 +31,8 @@ const AdminChatDashboard = () => {
   const [stats, setStats] = useState({});
   const [cannedResponses, setCannedResponses] = useState([]);
   const [showCannedDropdown, setShowCannedDropdown] = useState(false);
+  const [showCannedManager, setShowCannedManager] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const socketRef = useRef(null);
@@ -137,6 +143,17 @@ const AdminChatDashboard = () => {
     loadStats();
     loadCannedResponses();
   }, [filter]);
+
+  // Filter chats by search term (name or email)
+  const filteredChats = searchTerm.trim()
+    ? chats.filter((chat) => {
+        const term = searchTerm.trim().toLowerCase();
+        return (
+          chat.userName?.toLowerCase().includes(term) ||
+          chat.userEmail?.toLowerCase().includes(term)
+        );
+      })
+    : chats;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -306,7 +323,7 @@ const AdminChatDashboard = () => {
         {/* Chat List */}
         <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
           {/* Filter */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 space-y-2">
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -317,17 +334,27 @@ const AdminChatDashboard = () => {
               <option value="active">Active</option>
               <option value="closed">Closed</option>
             </select>
+            <div className="relative">
+              <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name or email..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+              />
+            </div>
           </div>
 
           {/* Chats */}
           <div className="divide-y divide-gray-200">
-            {chats.length === 0 ? (
+            {filteredChats.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 <FontAwesomeIcon icon={faComments} className="text-4xl mb-2" />
                 <p>No chats found</p>
               </div>
             ) : (
-              chats.map((chat) => (
+              filteredChats.map((chat) => (
                 <button
                   key={chat.id}
                   onClick={() => handleSelectChat(chat)}
@@ -337,10 +364,11 @@ const AdminChatDashboard = () => {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <FontAwesomeIcon
-                        icon={faUserCircle}
-                        className="text-2xl text-gray-400"
-                      />
+                      <div
+                        className={`w-9 h-9 rounded-full ${getAvatarColor(chat.userName)} text-white text-xs font-semibold flex items-center justify-center flex-shrink-0`}
+                      >
+                        {getInitials(chat.userName)}
+                      </div>
                       <div>
                         <p className="font-semibold">{chat.userName}</p>
                         <p className="text-xs text-gray-500">{chat.userEmail}</p>
@@ -391,70 +419,101 @@ const AdminChatDashboard = () => {
                   <p className="text-sm text-gray-500">{selectedChat.userEmail}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleStatusUpdate('active')}
-                    disabled={selectedChat.status === 'active'}
-                    className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-all hover:shadow-lg disabled:cursor-not-allowed"
-                  >
-                    Active
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate('closed')}
-                    disabled={selectedChat.status === 'closed'}
-                    className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg transition-all hover:shadow-lg disabled:cursor-not-allowed"
-                  >
-                    Close
-                  </button>
+                  {selectedChat.status === 'closed' ? (
+                    <button
+                      onClick={() => handleStatusUpdate('active')}
+                      className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all hover:shadow-lg flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faRotateLeft} />
+                      Reopen
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleStatusUpdate('active')}
+                        disabled={selectedChat.status === 'active'}
+                        className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-all hover:shadow-lg disabled:cursor-not-allowed"
+                      >
+                        Active
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate('closed')}
+                        className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all hover:shadow-lg"
+                      >
+                        Close
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                {messages.map((msg, index) => (
-                  <div
-                    key={msg.id || index}
-                    className={`flex ${
-                      msg.sender === 'admin' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div
-                    className={`max-w-[75%] rounded-2xl p-3 shadow-sm ${
-                      msg.sender === 'admin'
-                        ? 'bg-primary text-white rounded-br-none'
-                        : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                      }`}
-                    >
-                      {msg.sender === 'user' && (
-                        <p className="text-xs font-semibold mb-1">
-                          {msg.senderName}
-                        </p>
+                {messages.map((msg, index) => {
+                  const showDateSeparator =
+                    index === 0 || !isSameDay(messages[index - 1].timestamp, msg.timestamp);
+
+                  return (
+                    <div key={msg.id || index}>
+                      {showDateSeparator && (
+                        <div className="flex justify-center my-3">
+                          <span className="text-xs text-gray-400 bg-gray-200 px-3 py-1 rounded-full">
+                            {formatDateSeparator(msg.timestamp)}
+                          </span>
+                        </div>
                       )}
-                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p
-                          className={`text-xs ${
-                            msg.sender === 'admin'
-                              ? 'text-blue-100'
-                              : 'text-gray-500'
+                      <div
+                        className={`flex items-end gap-2 ${
+                          msg.sender === 'admin' ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        {msg.sender === 'user' && (
+                          <div
+                            className={`w-7 h-7 rounded-full ${getAvatarColor(msg.senderName)} text-white text-[10px] font-semibold flex items-center justify-center flex-shrink-0`}
+                          >
+                            {getInitials(msg.senderName)}
+                          </div>
+                        )}
+                        <div
+                        className={`max-w-[75%] rounded-2xl p-3 shadow-sm ${
+                          msg.sender === 'admin'
+                            ? 'bg-primary text-white rounded-br-none'
+                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                           }`}
                         >
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                        {msg.sender === 'admin' && (
-                          <FontAwesomeIcon
-                            icon={msg.read ? faCheckDouble : faCheck}
-                            className={`text-xs ${
-                              msg.read ? 'text-blue-200' : 'text-blue-300'
-                            }`}
-                          />
-                        )}
+                          {msg.sender === 'user' && (
+                            <p className="text-xs font-semibold mb-1">
+                              {msg.senderName}
+                            </p>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p
+                              className={`text-xs ${
+                                msg.sender === 'admin'
+                                  ? 'text-blue-100'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {new Date(msg.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                            {msg.sender === 'admin' && (
+                              <FontAwesomeIcon
+                                icon={msg.read ? faCheckDouble : faCheck}
+                                className={`text-xs ${
+                                  msg.read ? 'text-blue-200' : 'text-blue-300'
+                                }`}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isTyping && (
                   <div className="flex justify-start">
                     <div className="bg-white border border-gray-200 rounded-lg p-3">
@@ -488,12 +547,23 @@ const AdminChatDashboard = () => {
                     </button>
                     
                     {showCannedDropdown && (
-                      <div className="absolute bottom-full mb-2 left-0 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
-                        <div className="p-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+                      <div className="absolute bottom-full mb-2 left-0 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto flex flex-col">
+                        <div className="p-3 border-b border-gray-200 bg-gray-50 rounded-t-xl flex items-center justify-between">
                           <p className="text-sm font-semibold text-gray-700">Quick Replies</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCannedDropdown(false);
+                              setShowCannedManager(true);
+                            }}
+                            className="text-gray-400 hover:text-primary transition-colors"
+                            title="Manage quick replies"
+                          >
+                            <FontAwesomeIcon icon={faGear} />
+                          </button>
                         </div>
                         {cannedResponses.length > 0 ? (
-                          <div className="p-2">
+                          <div className="p-2 overflow-y-auto">
                             {cannedResponses.map((response) => (
                               <button
                                 key={response.id}
@@ -564,6 +634,13 @@ const AdminChatDashboard = () => {
           )}
         </div>
       </div>
+
+      {showCannedManager && (
+        <CannedResponseManager
+          onClose={() => setShowCannedManager(false)}
+          onChange={loadCannedResponses}
+        />
+      )}
     </div>
   );
 };

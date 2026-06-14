@@ -6,12 +6,15 @@ import {
   faTimes,
   faPaperPlane,
   faCircle,
+  faCheck,
+  faCheckDouble,
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { getSocket, initializeSocket } from '../services/socket';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import ChatRating from './ChatRating';
+import { getInitials, getAvatarColor, formatDateSeparator, isSameDay } from '../utils/chatHelpers';
 
 // WhatsApp Business number for Nonsa Travels
 const WHATSAPP_NUMBER = '260970462777';
@@ -282,7 +285,13 @@ const ChatWidget = () => {
                       isConnected ? 'text-green-400 animate-pulse' : 'text-gray-400'
                     }`}
                   />
-                  <span>{isConnected ? 'We\'re here to help!' : 'Connecting...'}</span>
+                  <span>
+                    {!isConnected
+                      ? 'Connecting...'
+                      : adminOnline
+                      ? 'Our team is online'
+                      : "We'll reply as soon as we can"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -310,12 +319,12 @@ const ChatWidget = () => {
                 <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                   <FontAwesomeIcon icon={faComments} className="text-3xl text-primary" />
                 </div>
-                <p className="font-semibold text-gray-700">Start a conversation!</p>
-                <p className="text-sm mt-1 mb-4">We&apos;re here to help 24/7</p>
-                
+                <p className="font-semibold text-gray-700">Send us a message</p>
+                <p className="text-sm mt-1 mb-4">Our team will get back to you as soon as possible.</p>
+
                 {/* WhatsApp Option */}
                 <div className="border-t border-gray-200 pt-4 mt-4">
-                  <p className="text-xs text-gray-500 mb-2">Or chat with us on WhatsApp for instant response:</p>
+                  <p className="text-xs text-gray-500 mb-2">Need a quicker response? Message us on WhatsApp:</p>
                   <button
                     onClick={() => openWhatsApp('Hi! I need help with booking a hotel on Nonsa Travels.')}
                     className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-all text-sm"
@@ -326,41 +335,76 @@ const ChatWidget = () => {
                 </div>
               </div>
             ) : (
-              messages.map((msg, index) => (
-                <div
-                  key={msg.id || index}
-                  className={`flex ${
-                    msg.sender === 'user' ? 'justify-end' : 'justify-start'
-                  } animate-fade-in`}
-                >
-                  <div
-                    className={`max-w-[75%] rounded-2xl p-3 shadow-sm ${
-                      msg.sender === 'user'
-                        ? 'bg-primary text-white rounded-br-none'
-                        : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                    }`}
-                  >
-                    {msg.sender === 'admin' && (
-                      <p className="text-xs font-semibold mb-1 text-primary">
-                        {msg.senderName || 'Support Team'}
-                      </p>
+              messages.map((msg, index) => {
+                const showDateSeparator =
+                  index === 0 || !isSameDay(messages[index - 1].timestamp, msg.timestamp);
+
+                return (
+                  <div key={msg.id || index}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-3">
+                        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                          {formatDateSeparator(msg.timestamp)}
+                        </span>
+                      </div>
                     )}
-                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.sender === 'user'
-                          ? 'text-white/80'
-                          : 'text-gray-500'
-                      }`}
+                    <div
+                      className={`flex items-end gap-2 ${
+                        msg.sender === 'user' ? 'justify-end' : 'justify-start'
+                      } animate-fade-in`}
                     >
-                      {new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
+                      {msg.sender === 'admin' && (
+                        <div
+                          className={`w-7 h-7 rounded-full ${getAvatarColor(
+                            msg.senderName || 'Support Team'
+                          )} text-white text-[10px] font-semibold flex items-center justify-center flex-shrink-0`}
+                        >
+                          {getInitials(msg.senderName || 'Support Team')}
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[75%] rounded-2xl p-3 shadow-sm ${
+                          msg.sender === 'user'
+                            ? 'bg-primary text-white rounded-br-none'
+                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                        }`}
+                      >
+                        {msg.sender === 'admin' && (
+                          <p className="text-xs font-semibold mb-1 text-primary">
+                            {msg.senderName || 'Support Team'}
+                          </p>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                        <div
+                          className={`flex items-center gap-1 mt-1 ${
+                            msg.sender === 'user' ? 'justify-end' : ''
+                          }`}
+                        >
+                          <p
+                            className={`text-xs ${
+                              msg.sender === 'user'
+                                ? 'text-white/80'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            {new Date(msg.timestamp).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                          {msg.sender === 'user' && (
+                            <FontAwesomeIcon
+                              icon={msg.read ? faCheckDouble : faCheck}
+                              className="text-[10px] text-white/80"
+                              title={msg.read ? 'Read' : 'Sent'}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             {isTyping && (
               <div className="flex justify-start">
@@ -378,7 +422,7 @@ const ChatWidget = () => {
               <div className="flex justify-center animate-fade-in">
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center max-w-[90%]">
                   <p className="text-sm text-gray-700 mb-2">
-                    Our team is currently busy. For faster response:
+                    Our team may be away right now. We&apos;ll reply here as soon as we can, or you can reach us on WhatsApp:
                   </p>
                   <button
                     onClick={() => openWhatsApp()}
@@ -387,9 +431,6 @@ const ChatWidget = () => {
                     <FontAwesomeIcon icon={faWhatsapp} className="text-lg" />
                     Continue on WhatsApp
                   </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    We&apos;ll respond within minutes!
-                  </p>
                 </div>
               </div>
             )}
