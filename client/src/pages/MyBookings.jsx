@@ -19,7 +19,7 @@ import {
   faCalendarXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import PropTypes from "prop-types";
-import Loading from "../components/Loading";
+import { SkeletonBookingCard } from "../components/Skeleton";
 import BookingModificationModal from "../components/BookingModificationModal";
 import { useTranslation } from "react-i18next";
 
@@ -78,7 +78,17 @@ const MyBookings = () => {
     );
   };
 
-  if (loading) return <Loading />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16 space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonBookingCard key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Filter bookings
   const filteredBookings = bookings.filter((booking) => {

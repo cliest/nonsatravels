@@ -19,7 +19,7 @@ import PropTypes from "prop-types";
 import { weatherAPI } from "../services/weatherAPI";
 import { useWeather } from "../context/WeatherContext";
 import { toast } from "../utils/toast";
-import Loading from "./Loading";
+import { SkeletonText } from "./Skeleton";
 
 const WeatherWidget = ({ latitude, longitude, checkInDate, checkOutDate, city }) => {
   const [weather, setWeather] = useState(null);
@@ -99,8 +99,9 @@ const WeatherWidget = ({ latitude, longitude, checkInDate, checkOutDate, city })
 
   if (loading) {
     return (
-      <div className="bg-blue-50 rounded-2xl p-6 shadow-lg">
-        <Loading size="small" text="Loading weather..." />
+      <div className="bg-blue-50 rounded-2xl p-6 shadow-lg space-y-3">
+        <SkeletonText className="w-1/2" />
+        <SkeletonText lines={2} />
       </div>
     );
   }

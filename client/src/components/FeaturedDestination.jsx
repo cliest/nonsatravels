@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { hotelAPI } from "../services/api";
 import { assets } from "../assets/assets";
 import { useTranslation } from "react-i18next";
+import { SkeletonHotelGrid } from "./Skeleton";
 
 const FeaturedDestination = () => {
   const { t } = useTranslation();
@@ -50,13 +51,12 @@ const FeaturedDestination = () => {
       />
 
       {loading ? (
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        <div className="w-full mt-10">
+          <SkeletonHotelGrid count={3} />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 stagger-children">
             {featuredHotels.slice(0, 3).map((room, index) => (
               <HotelCard key={room.id} room={room} index={index} />
             ))}

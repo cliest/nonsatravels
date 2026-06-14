@@ -10,7 +10,6 @@ import {
   faArrowLeft,
   faShare,
   faBookmark,
-  faSpinner,
   faTag,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -22,6 +21,7 @@ import {
 import { blogAPI } from "../services/blogAPI";
 import BlogCard from "../components/BlogCard";
 import { toast } from "../utils/toast";
+import { SkeletonDetailPage } from "../components/Skeleton";
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -90,8 +90,8 @@ const BlogPost = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <FontAwesomeIcon icon={faSpinner} className="text-4xl text-primary animate-spin" />
+      <div className="min-h-screen pt-8">
+        <SkeletonDetailPage />
       </div>
     );
   }

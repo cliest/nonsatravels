@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Title from "./Title";
 import StarRating from "./StarRating";
 import { testimonialAPI } from "../services/api";
-import Loading from "./Loading";
+import { SkeletonTestimonialCard } from "./Skeleton";
 import { useTranslation } from "react-i18next";
 
 const Testimonial = () => {
@@ -29,7 +29,17 @@ const Testimonial = () => {
   };
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div className="px-6 md:px-12 lg:px-20 xl:px-32 py-16 md:py-20 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-stretch justify-center gap-6">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="max-w-sm w-full">
+              <SkeletonTestimonialCard />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (testimonials.length === 0) {

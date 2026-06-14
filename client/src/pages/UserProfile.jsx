@@ -24,6 +24,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import PropTypes from "prop-types";
 import api, { authAPI } from "../services/api";
 import { toast } from "../utils/toast";
+import { SkeletonProfile } from "../components/Skeleton";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -174,10 +175,9 @@ const UserProfile = () => {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-16 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+      <div className="min-h-screen bg-gray-50 pt-24 pb-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <SkeletonProfile />
         </div>
       </div>
     );

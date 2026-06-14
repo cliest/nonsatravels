@@ -37,7 +37,7 @@ router.get('/check/:hotelId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -70,7 +70,7 @@ router.get('/calendar/:hotelId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -105,7 +105,7 @@ router.get('/pricing/:hotelId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -129,7 +129,7 @@ router.get('/price-calendar/:hotelId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -174,7 +174,7 @@ router.get('/full/:hotelId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });

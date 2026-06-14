@@ -15,7 +15,7 @@ import "leaflet/dist/leaflet.css";
 import { hotelAPI } from "../services/api";
 import { useCurrency } from "../context/CurrencyContext";
 import { toast } from "../utils/toast";
-import Loading from "../components/Loading";
+import { SkeletonImage } from "../components/Skeleton";
 import HotelCard from "../components/HotelCard";
 
 // Fix for default marker icons in Leaflet with Vite/Webpack
@@ -184,30 +184,48 @@ const MapView = () => {
   }, [filteredHotels, selectedHotel]);
 
   if (loading) {
-    return <Loading size="large" fullScreen={true} text="Loading map..." />;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-primary py-16 md:py-20" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16 py-8 -mt-8 relative z-10">
+          <SkeletonImage className="w-full h-16 rounded-xl mb-6" />
+          <SkeletonImage className="w-full h-[600px] sm:h-[700px] rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Explore Hotels on Map
-          </h1>
-          <p className="text-gray-600">
-            Discover {filteredHotels.length} hotels across Zambia
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="relative bg-primary text-white py-16 md:py-20 overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2" />
         </div>
 
+        <div className="px-6 md:px-12 lg:px-20 xl:px-32 relative z-10">
+          <div className="max-w-7xl mx-auto text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 animate-fade-in">
+              Explore Hotels on Map
+            </h1>
+            <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto leading-relaxed">
+              Discover {filteredHotels.length} hand-picked {filteredHotels.length === 1 ? "hotel" : "hotels"} across Zambia
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16 py-8 -mt-8 relative z-10">
         {/* Controls */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-6 fade-in">
           <div className="flex flex-wrap items-center gap-4">
             {/* View Toggle */}
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("map")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg font-medium transition-all button-press ${
                   viewMode === "map"
                     ? "bg-white text-primary shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
@@ -218,7 +236,7 @@ const MapView = () => {
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg font-medium transition-all button-press ${
                   viewMode === "list"
                     ? "bg-white text-primary shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
@@ -232,10 +250,19 @@ const MapView = () => {
             {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-all"
+              className={`px-4 py-2 rounded-lg font-medium transition-all button-press ${
+                showFilters || radiusFilter
+                  ? "bg-primary text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
             >
               <FontAwesomeIcon icon={faFilter} className="mr-2" />
               Filters
+              {radiusFilter && (
+                <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                  {radiusFilter} km
+                </span>
+              )}
             </button>
 
             {/* Results Count */}
@@ -246,31 +273,33 @@ const MapView = () => {
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-gray-200 menu-slide-down">
               <h3 className="font-semibold text-gray-900 mb-3">
                 <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary" />
-                Filter by Distance from Center
+                Filter by Distance from Map Center
               </h3>
               <div className="flex flex-wrap gap-2">
                 {[10, 25, 50, 100, 200].map((radius) => (
                   <button
                     key={radius}
                     onClick={() => handleRadiusChange(radius)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-all button-press ${
                       radiusFilter === radius
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-white shadow-sm"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     {radius} km
                   </button>
                 ))}
-                <button
-                  onClick={handleResetFilters}
-                  className="px-4 py-2 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-all"
-                >
-                  Reset
-                </button>
+                {radiusFilter && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-4 py-2 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-all button-press"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -278,7 +307,7 @@ const MapView = () => {
 
         {/* Map or List View */}
         {viewMode === "map" ? (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
             <MapContainer
               center={[mapCenter.lat, mapCenter.lng]}
               zoom={6}
@@ -308,7 +337,7 @@ const MapView = () => {
                   }}
                 >
                   <Popup maxWidth={300} className="hotel-popup">
-                    <div className="p-1">
+                    <div className="p-1 animate-fadeIn">
                       <img
                         src={hotel.images[0]}
                         alt={hotel.name}
@@ -332,7 +361,7 @@ const MapView = () => {
                       </div>
                       <button
                         onClick={() => navigate(`/hotels/${hotel.id}`)}
-                        className="w-full py-2.5 bg-primary text-white font-semibold rounded-lg hover:opacity-90 transition-all"
+                        className="w-full py-2.5 bg-primary text-white font-semibold rounded-lg hover:opacity-90 transition-all button-press"
                       >
                         View Details
                       </button>
@@ -343,31 +372,34 @@ const MapView = () => {
             </MapContainer>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredHotels.map((hotel) => (
-              <HotelCard key={hotel.id} hotel={hotel} />
-            ))}
-            {filteredHotels.length === 0 && (
-              <div className="col-span-full text-center py-12">
+          filteredHotels.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-md p-12 text-center fade-in">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <FontAwesomeIcon
                   icon={faMapMarkerAlt}
-                  className="text-6xl text-gray-300 mb-4"
+                  className="text-5xl text-gray-300"
                 />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No hotels found in this area
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your filters or expanding the search radius
-                </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent transition-all"
-                >
-                  Reset Filters
-                </button>
               </div>
-            )}
-          </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                No hotels found in this area
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Try adjusting your filters or expanding the search radius
+              </p>
+              <button
+                onClick={handleResetFilters}
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent transition-all button-press"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+              {filteredHotels.map((hotel, index) => (
+                <HotelCard key={hotel.id} room={hotel} index={index} />
+              ))}
+            </div>
+          )
         )}
       </div>
 

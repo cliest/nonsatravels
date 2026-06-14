@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { facilityIcons, roomCommonData, assets } from "../assets/assets";
 import StarRating from "../components/StarRating";
-import Loading from "../components/Loading";
+import { SkeletonDetailPage } from "../components/Skeleton";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import DynamicPriceDisplay from "../components/DynamicPriceDisplay";
 import ShareButtons from "../components/ShareButtons";
@@ -232,7 +232,7 @@ const HotelDetails = () => {
   };
 
   if (loading) {
-    return <Loading size="large" fullScreen={true} text="Loading hotel details..." />;
+    return <SkeletonDetailPage />;
   }
 
   if (!hotel) {

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import Hero from "../components/Hero";
-import Loading from "../components/Loading";
+import { SkeletonHotelGrid } from "../components/Skeleton";
 
 // Lazy load components below the fold
 const FeaturedDestination = lazy(() => import("../components/FeaturedDestination"));
@@ -13,7 +13,7 @@ const Home = () => {
   return (
     <>
       <Hero />
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<div className="px-4 sm:px-6 md:px-12 lg:px-20 xl:px-32 py-12"><SkeletonHotelGrid count={3} /></div>}>
         <FeaturedDestination />
         <ExclusiveOffers />
         <FeaturedBlog />

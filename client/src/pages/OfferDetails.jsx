@@ -12,7 +12,7 @@ import {
   faShare,
   faCopy,
 } from "@fortawesome/free-solid-svg-icons";
-import Loading from "../components/Loading";
+import { SkeletonDetailPage } from "../components/Skeleton";
 import { offerAPI, hotelAPI } from "../services/api";
 import { toast } from "../utils/toast";
 
@@ -99,7 +99,7 @@ const OfferDetails = () => {
   };
 
   if (loading) {
-    return <Loading />;
+    return <SkeletonDetailPage />;
   }
 
   if (!offer) {

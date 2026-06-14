@@ -23,7 +23,7 @@ export const getUserChat = async (req, res) => {
 
     res.status(200).json({ success: true, data: chat });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get chat session', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get chat session', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -49,7 +49,7 @@ export const getAllChats = async (req, res) => {
       pagination: { total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch chats', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch chats', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -59,7 +59,7 @@ export const getChatById = async (req, res) => {
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
     res.status(200).json({ success: true, data: chat });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch chat', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch chat', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -90,7 +90,7 @@ export const sendMessage = async (req, res) => {
     const updated = await prisma.chat.update({ where: { id: chatId }, data: updateData, include: chatInclude });
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to send message', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to send message', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -112,7 +112,7 @@ export const markMessagesAsRead = async (req, res) => {
     const updated = await prisma.chat.update({ where: { id: chatId }, data: resetField, include: chatInclude });
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to mark messages as read', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to mark messages as read', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -131,7 +131,7 @@ export const updateChatStatus = async (req, res) => {
     const updated = await prisma.chat.update({ where: { id: chatId }, data, include: chatInclude });
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update chat status', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update chat status', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -156,7 +156,7 @@ export const getChatStats = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get chat statistics', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get chat statistics', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -180,7 +180,7 @@ export const rateChat = async (req, res) => {
 
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to rate chat', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to rate chat', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -198,6 +198,6 @@ export const sendChatTranscript = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Chat transcript sent successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to send chat transcript', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to send chat transcript', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

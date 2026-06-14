@@ -13,7 +13,7 @@ export const getAllCannedResponses = async (req, res) => {
     });
     res.status(200).json({ success: true, data: responses });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get canned responses', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get canned responses', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -27,7 +27,7 @@ export const createCannedResponse = async (req, res) => {
     });
     res.status(201).json({ success: true, data: response });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create canned response', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create canned response', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -41,7 +41,7 @@ export const updateCannedResponse = async (req, res) => {
     res.status(200).json({ success: true, data: response });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Canned response not found' });
-    res.status(500).json({ success: false, message: 'Failed to update canned response', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update canned response', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -51,7 +51,7 @@ export const deleteCannedResponse = async (req, res) => {
     res.status(200).json({ success: true, message: 'Canned response deleted successfully' });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Canned response not found' });
-    res.status(500).json({ success: false, message: 'Failed to delete canned response', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete canned response', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -64,6 +64,6 @@ export const incrementUsageCount = async (req, res) => {
     res.status(200).json({ success: true, data: response });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Canned response not found' });
-    res.status(500).json({ success: false, message: 'Failed to increment usage count', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to increment usage count', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

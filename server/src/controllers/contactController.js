@@ -120,7 +120,7 @@ export const sendContactEmail = async (req, res) => {
     res.status(200).json({ success: true, message: 'Your message has been sent successfully. We will get back to you soon!' });
   } catch (error) {
     console.error('Error sending contact email:', error);
-    res.status(500).json({ success: false, message: 'Failed to send message. Please try again later.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to send message. Please try again later.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -193,6 +193,6 @@ export const subscribeNewsletter = async (req, res) => {
     res.status(200).json({ success: true, message: 'Successfully subscribed to newsletter! Check your email for confirmation.' });
   } catch (error) {
     console.error('Error subscribing to newsletter:', error);
-    res.status(500).json({ success: false, message: 'Failed to subscribe. Please try again later.', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to subscribe. Please try again later.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

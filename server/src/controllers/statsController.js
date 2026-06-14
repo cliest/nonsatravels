@@ -23,6 +23,6 @@ export const getStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch statistics', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch statistics', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

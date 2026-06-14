@@ -6,11 +6,11 @@ import {
   faFilter,
   faNewspaper,
   faChevronRight,
-  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { blogAPI } from "../services/blogAPI";
 import BlogCard from "../components/BlogCard";
 import Title from "../components/Title";
+import { SkeletonOfferCard } from "../components/Skeleton";
 
 const CATEGORIES = [
   'Travel Tips',
@@ -219,7 +219,7 @@ const Blog = () => {
               subtitle="Our top picks for you"
               align="left"
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 stagger-children">
               {featuredPosts.map((post) => (
                 <BlogCard key={post.id} post={post} featured />
               ))}
@@ -339,8 +339,10 @@ const Blog = () => {
             )}
 
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <FontAwesomeIcon icon={faSpinner} className="text-4xl text-primary animate-spin" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonOfferCard key={i} />
+                ))}
               </div>
             ) : posts.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-xl">
@@ -368,7 +370,7 @@ const Blog = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-6 stagger-children">
                   {posts.map((post) => (
                     <BlogCard key={post.id} post={post} />
                   ))}

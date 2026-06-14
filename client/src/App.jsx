@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from "react";
 import Navbar from "./components/Navbar";
 import { Route, Routes, useLocation } from "react-router-dom";
 import Footer from "./components/Footer";
-import Loading from "./components/Loading";
+import PageLoadingBar from "./components/PageLoadingBar";
 import ChatWidget from "./components/ChatWidget";
 import CompareBar from "./components/CompareBar";
 import SkipLink from "./components/SkipLink";
@@ -53,7 +53,8 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App = () => {
-  const isOwnerPath = useLocation().pathname.includes("admin");
+  const location = useLocation();
+  const isOwnerPath = location.pathname.includes("admin");
   
   // Monitor network status
   useNetworkStatus();
@@ -69,7 +70,8 @@ const App = () => {
         <EmailVerificationBanner />
         {!isOwnerPath && <Navbar />}
         <main id="main-content" tabIndex="-1" className="min-h-[70vh]">
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<PageLoadingBar />}>
+            <div key={location.pathname} className="page-enter">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/hotels" element={<AllHotels />} />
@@ -109,6 +111,7 @@ const App = () => {
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </div>
           </Suspense>
         </main>
         <Footer />

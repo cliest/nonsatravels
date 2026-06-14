@@ -67,7 +67,7 @@ export const getMyLoyalty = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get loyalty information', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get loyalty information', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -87,7 +87,7 @@ export const getPointsHistory = async (req, res) => {
 
     res.status(200).json({ success: true, data: history });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get points history', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get points history', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -127,7 +127,7 @@ export const awardPoints = async (userId, bookingId, totalPrice) => {
     return { success: true, pointsEarned, tierUpgraded, newTier, currentPoints: loyalty.points + pointsEarned };
   } catch (error) {
     console.error('Award points error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: process.env.NODE_ENV === 'development' ? error.message : undefined };
   }
 };
 
@@ -151,7 +151,7 @@ export const redeemPoints = async (req, res) => {
 
     res.status(200).json({ success: true, data: { points, discountAmount, redemptionToken } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to redeem points', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to redeem points', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -179,6 +179,6 @@ export const applyPointsRedemption = async (userId, bookingId, points) => {
     return { success: true, pointsRedeemed: points, discountAmount, remainingPoints: loyalty.points - points };
   } catch (error) {
     console.error('Apply points redemption error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: process.env.NODE_ENV === 'development' ? error.message : undefined };
   }
 };

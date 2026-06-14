@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
 import { hotelAPI } from "../services/api";
 import HotelCard from "../components/HotelCard";
-import Loading from "../components/Loading";
+import { SkeletonHotelGrid } from "../components/Skeleton";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faArrowLeft, faTrash } from "@fortawesome/free-solid-svg-icons";
 
@@ -85,7 +85,7 @@ const Favorites = () => {
 
         {/* Content */}
         {loading ? (
-          <Loading />
+          <SkeletonHotelGrid count={3} />
         ) : favoriteHotels.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -135,7 +135,7 @@ const Favorites = () => {
             </div>
 
             {/* Hotels Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
               {favoriteHotels.map((hotel, index) => (
                 <HotelCard key={hotel.id} room={hotel} index={index} />
               ))}

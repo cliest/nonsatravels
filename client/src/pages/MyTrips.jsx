@@ -14,7 +14,7 @@ import {
 import * as tripAPI from '../services/tripAPI';
 import { toast } from '../utils/toast';
 import Title from '../components/Title';
-import Loading from '../components/Loading';
+import { SkeletonBookingCard } from '../components/Skeleton';
 
 const MyTrips = () => {
   const { user, isLoaded } = useUser();
@@ -104,7 +104,15 @@ const MyTrips = () => {
     return trip.status === filter;
   });
 
-  if (loading || !isLoaded) return <Loading />;
+  if (loading || !isLoaded) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16 py-8 space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <SkeletonBookingCard key={i} />
+        ))}
+      </div>
+    );
+  }
 
   // Show sign-in prompt if not authenticated
   if (!user) {

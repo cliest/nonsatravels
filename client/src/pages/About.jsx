@@ -12,7 +12,7 @@ import {
   faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import { statsAPI } from "../services/api";
-import Loading from "../components/Loading";
+import { SkeletonDetailPage } from "../components/Skeleton";
 import { useTranslation } from "react-i18next";
 
 const About = () => {
@@ -121,7 +121,7 @@ const About = () => {
   ];
 
   if (loading) {
-    return <Loading />;
+    return <SkeletonDetailPage />;
   }
 
   return (

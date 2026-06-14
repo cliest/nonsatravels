@@ -32,7 +32,7 @@ export const getReferralCode = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get referral code', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get referral code', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -50,7 +50,7 @@ export const validateReferralCode = async (req, res) => {
       data: { valid: true, discountPercentage: 10, maxDiscount: 50, referralCode: referral.referralCode },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to validate referral code', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to validate referral code', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -77,7 +77,7 @@ export const getReferralStats = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get referral statistics', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get referral statistics', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 

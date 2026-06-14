@@ -8,7 +8,7 @@ export const getHotelReviews = async (req, res) => {
     });
     res.status(200).json({ success: true, count: reviews.length, data: reviews });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -32,7 +32,7 @@ export const createReview = async (req, res) => {
 
     res.status(201).json({ success: true, data: review });
   } catch (error) {
-    res.status(400).json({ success: false, message: 'Failed to create review', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to create review', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -52,7 +52,7 @@ export const updateReview = async (req, res) => {
     res.status(200).json({ success: true, data: review });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Review not found' });
-    res.status(400).json({ success: false, message: 'Failed to update review', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to update review', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -69,7 +69,7 @@ export const deleteReview = async (req, res) => {
     res.status(200).json({ success: true, message: 'Review deleted successfully' });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Review not found' });
-    res.status(500).json({ success: false, message: 'Failed to delete review', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete review', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -82,6 +82,6 @@ export const markReviewHelpful = async (req, res) => {
     res.status(200).json({ success: true, data: review });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Review not found' });
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

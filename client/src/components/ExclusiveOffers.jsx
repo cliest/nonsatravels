@@ -4,6 +4,7 @@ import Title from "./Title";
 import { assets } from "../assets/assets";
 import { offerAPI } from "../services/api";
 import { useTranslation } from "react-i18next";
+import { SkeletonOfferCard } from "./Skeleton";
 
 const ExclusiveOffers = () => {
   const { t } = useTranslation();
@@ -16,7 +17,7 @@ const ExclusiveOffers = () => {
       try {
         setLoading(true);
         const response = await offerAPI.getAll();
-        setOffers(response.data.data);
+        setOffers(response.data?.data || []);
       } catch (error) {
         // Silent fail - offers are optional
       } finally {
@@ -61,12 +62,13 @@ const ExclusiveOffers = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading exclusive offers...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonOfferCard key={i} />
+            ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
             {offers.map((item) => (
             <Link
               key={item.id}

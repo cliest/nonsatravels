@@ -58,7 +58,7 @@ export const getBookings = async (req, res) => {
     res.status(200).json({ success: true, count: formatted.length, data: formatted });
   } catch (error) {
     console.error('getBookings error:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -75,7 +75,7 @@ export const getBooking = async (req, res) => {
 
     res.status(200).json({ success: true, data: formatBooking(booking) });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -226,7 +226,7 @@ export const createBooking = async (req, res) => {
 
     res.status(201).json({ success: true, data: populatedBooking });
   } catch (error) {
-    res.status(400).json({ success: false, message: 'Failed to create booking', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to create booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -297,7 +297,7 @@ export const updateBookingStatus = async (req, res) => {
 
     res.status(200).json({ success: true, data: booking });
   } catch (error) {
-    res.status(400).json({ success: false, message: 'Failed to update booking', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to update booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -339,7 +339,7 @@ export const cancelBooking = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Booking cancelled successfully', data: booking, refundAmount, refundReason });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to cancel booking', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to cancel booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -351,7 +351,7 @@ export const deleteBookingPermanently = async (req, res) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    res.status(500).json({ success: false, message: 'Failed to delete booking', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -393,7 +393,7 @@ export const sendBankDetails = async (req, res) => {
       res.status(500).json({ success: false, message: 'Failed to send bank details', error: emailError.message });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -460,7 +460,7 @@ export const modifyBooking = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Booking modified successfully', data: updatedBooking, modifications });
   } catch (error) {
-    res.status(400).json({ success: false, message: 'Failed to modify booking', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to modify booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -488,7 +488,7 @@ export const getBookingStats = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -522,7 +522,7 @@ export const generateInvoice = async (req, res) => {
     res.setHeader('Content-Length', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to generate invoice', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to generate invoice', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -558,6 +558,6 @@ export const sendInvoiceEmail = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Invoice sent successfully', email: booking.userEmail, invoiceNumber: booking.invoiceNumber });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to send invoice', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to send invoice', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

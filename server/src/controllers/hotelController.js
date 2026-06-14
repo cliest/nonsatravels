@@ -34,7 +34,7 @@ export const getHotels = async (req, res) => {
 
     res.status(200).json({ success: true, count: hotels.length, data: hotels });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -48,7 +48,7 @@ export const getHotel = async (req, res) => {
 
     res.status(200).json({ success: true, data: hotel });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -57,7 +57,7 @@ export const createHotel = async (req, res) => {
     const hotel = await prisma.hotel.create({ data: req.body });
     res.status(201).json({ success: true, data: hotel });
   } catch (error) {
-    res.status(400).json({ success: false, message: 'Failed to create hotel', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to create hotel', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -73,7 +73,7 @@ export const updateHotel = async (req, res) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ success: false, message: 'Hotel not found' });
     }
-    res.status(400).json({ success: false, message: 'Failed to update hotel', error: error.message });
+    res.status(400).json({ success: false, message: 'Failed to update hotel', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -85,7 +85,7 @@ export const deleteHotel = async (req, res) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ success: false, message: 'Hotel not found' });
     }
-    res.status(500).json({ success: false, message: 'Failed to delete hotel', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete hotel', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -94,7 +94,7 @@ export const getFeaturedHotels = async (req, res) => {
     const hotels = await prisma.hotel.findMany({ where: { isFeatured: true }, take: 3 });
     res.status(200).json({ success: true, count: hotels.length, data: hotels });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
@@ -113,6 +113,6 @@ export const toggleFeatured = async (req, res) => {
 
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

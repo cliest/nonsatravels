@@ -13,7 +13,7 @@ import {
 import * as tripAPI from '../services/tripAPI';
 import { useCurrency } from '../context/CurrencyContext';
 import { toast } from '../utils/toast';
-import Loading from '../components/Loading';
+import { SkeletonDetailPage } from '../components/Skeleton';
 
 const SharedTrip = () => {
   const { token } = useParams();
@@ -71,7 +71,7 @@ const SharedTrip = () => {
     return colors[category] || colors.other;
   };
 
-  if (loading) return <Loading />;
+  if (loading) return <SkeletonDetailPage />;
   if (!trip) return null;
 
   return (

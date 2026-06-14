@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTag } from "@fortawesome/free-solid-svg-icons";
 import Title from "../components/Title";
 import { offerAPI } from "../services/api";
-import Loading from "../components/Loading";
+import { SkeletonOfferCard } from "../components/Skeleton";
 import { useTranslation } from "react-i18next";
 
 const AllOffers = () => {
@@ -18,7 +18,7 @@ const AllOffers = () => {
       try {
         setLoading(true);
         const response = await offerAPI.getAll();
-        setOffers(response.data.data);
+        setOffers(response.data?.data || []);
       } catch (error) {
         console.error('Failed to fetch offers:', error);
       } finally {
@@ -42,7 +42,15 @@ const AllOffers = () => {
   });
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen bg-gray-50 px-6 md:px-12 lg:px-20 xl:px-32 py-16 md:py-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonOfferCard key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -119,7 +127,7 @@ const AllOffers = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
               {filteredOffers.map((offer) => {
                 const now = new Date();
                 const expiryDate = new Date(offer.expiryDate);
