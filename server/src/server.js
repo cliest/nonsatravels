@@ -44,11 +44,6 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:4173', // Vite preview
-  'https://nonsatravels.netlify.app',
-  'https://nonsatravels.vercel.app',
-  'https://nonsatravels-client.onrender.com',
-  'https://master--nonsatravels.netlify.app', // Netlify auto-deploy URL
-  'https://main--nonsatravels.netlify.app', // Netlify branch deploy
   // Split CLIENT_URL on commas to support multiple URLs in one env var
   ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
@@ -63,10 +58,6 @@ app.use(cors({
     if (normalizedOrigin.startsWith('http://localhost') || normalizedOrigin.startsWith('https://localhost')) {
       return callback(null, true);
     }
-    if (normalizedOrigin.includes('.netlify.app')) return callback(null, true);
-    if (normalizedOrigin.includes('.vercel.app')) return callback(null, true);
-    
-    if (normalizedOrigin.includes('.onrender.com')) return callback(null, true);
     if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
 
     if (process.env.NODE_ENV === 'development' || !process.env.CLIENT_URL) {
@@ -140,20 +131,6 @@ app.get('/api/health', (req, res) => {
       clientUrl: process.env.CLIENT_URL,
       requestOrigin: req.get('origin') || req.get('referer') || 'none',
     }
-  });
-});
-
-// CORS debug endpoint
-app.get('/api/cors-debug', (req, res) => {
-  res.status(200).json({
-    success: true,
-    origin: req.get('origin'),
-    referer: req.get('referer'), 
-    userAgent: req.get('user-agent'),
-    headers: req.headers,
-    allowedOrigins: allowedOrigins,
-    environment: process.env.NODE_ENV,
-    clientUrl: process.env.CLIENT_URL,
   });
 });
 

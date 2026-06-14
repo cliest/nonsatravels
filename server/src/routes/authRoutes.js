@@ -11,10 +11,14 @@ import {
   passwordResetEmail,
   passwordChangedEmail,
 } from '../utils/authEmailTemplates.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nonsatravels-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable must be set');
+}
 
 const generateToken = (userId) => jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -50,7 +54,7 @@ const safeUser = (user) => ({
 });
 
 // @route   POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
 
@@ -94,7 +98,7 @@ router.post('/register', async (req, res) => {
 });
 
 // @route   POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -185,7 +189,7 @@ router.put('/password', async (req, res) => {
 });
 
 // @route   POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -218,7 +222,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // @route   POST /api/auth/reset-password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ success: false, message: 'Token and password are required.' });
@@ -282,7 +286,7 @@ router.get('/verify-email/:token', async (req, res) => {
 });
 
 // @route   POST /api/auth/resend-verification
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -662,7 +666,7 @@ router.delete('/admin/users/:id', async (req, res) => {
 });
 
 // @route   POST /api/auth/magic-link
-router.post('/magic-link', async (req, res) => {
+router.post('/magic-link', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email is required' });

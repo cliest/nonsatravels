@@ -4,10 +4,9 @@ const chatInclude = { messages: { orderBy: { timestamp: 'asc' } } };
 
 export const getUserChat = async (req, res) => {
   try {
-    const { userId, userName, userEmail } = req.body;
-    if (!userId || !userName || !userEmail) {
-      return res.status(400).json({ success: false, message: 'User ID, name, and email are required' });
-    }
+    const userId = req.user.id;
+    const userName = req.user.fullName;
+    const userEmail = req.user.email;
 
     let chat = await prisma.chat.findFirst({
       where: { userId, status: { not: 'closed' } },
@@ -57,6 +56,11 @@ export const getChatById = async (req, res) => {
   try {
     const chat = await prisma.chat.findUnique({ where: { id: req.params.chatId }, include: chatInclude });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
+    }
+
     res.status(200).json({ success: true, data: chat });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch chat', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
@@ -66,14 +70,27 @@ export const getChatById = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { chatId } = req.params;
-    const { sender, senderName, senderId, message } = req.body;
+    const { sender, message } = req.body;
 
-    if (!sender || !senderName || !senderId || !message) {
-      return res.status(400).json({ success: false, message: 'All message fields are required' });
+    if (!sender || !message) {
+      return res.status(400).json({ success: false, message: 'Sender and message are required' });
+    }
+    if (!['user', 'admin'].includes(sender)) {
+      return res.status(400).json({ success: false, message: 'Invalid sender' });
+    }
+    if (sender === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to send as admin' });
     }
 
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
+    }
+
+    const senderName = req.user.fullName;
+    const senderId = req.user.id;
 
     await prisma.chatMessage.create({
       data: { chatId, sender, senderName, senderId, message, timestamp: new Date(), read: false },
@@ -101,6 +118,10 @@ export const markMessagesAsRead = async (req, res) => {
 
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
+    }
 
     const senderToMark = reader === 'user' ? 'admin' : 'user';
     await prisma.chatMessage.updateMany({
@@ -172,6 +193,10 @@ export const rateChat = async (req, res) => {
     const chat = await prisma.chat.findUnique({ where: { id: chatId } });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
+    }
+
     const updated = await prisma.chat.update({
       where: { id: chatId },
       data: { ratingScore: score, ratingFeedback: feedback || '', ratingRatedAt: new Date() },
@@ -189,6 +214,10 @@ export const sendChatTranscript = async (req, res) => {
     const { chatId } = req.params;
     const chat = await prisma.chat.findUnique({ where: { id: chatId }, include: chatInclude });
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+
+    if (req.user.role !== 'admin' && chat.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this chat' });
+    }
 
     const { sendEmail } = await import('../utils/emailService.js');
     const { chatTranscriptEmail, EMAIL_SUBJECTS } = await import('../utils/emailTemplates.js');

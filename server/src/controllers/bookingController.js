@@ -73,6 +73,10 @@ export const getBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
+    if (req.user.role !== 'admin' && booking.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this booking' });
+    }
+
     res.status(200).json({ success: true, data: formatBooking(booking) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
@@ -308,6 +312,10 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
+    if (req.user.role !== 'admin' && raw.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to cancel this booking' });
+    }
+
     const checkIn = new Date(raw.checkInDate);
     const now = new Date();
     const daysUntilCheckIn = Math.ceil((checkIn - now) / (1000 * 60 * 60 * 24));
@@ -403,6 +411,10 @@ export const modifyBooking = async (req, res) => {
 
     const oldRaw = await prisma.booking.findUnique({ where: { id: req.params.id }, include: bookingInclude });
     if (!oldRaw) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    if (req.user.role !== 'admin' && oldRaw.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to modify this booking' });
+    }
 
     if (!['pending_payment', 'payment_confirmed', 'confirmed'].includes(oldRaw.status)) {
       return res.status(400).json({ success: false, message: `Cannot modify booking with status: ${oldRaw.status}` });

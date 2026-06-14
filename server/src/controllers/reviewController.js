@@ -40,6 +40,12 @@ export const updateReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
 
+    const existing = await prisma.review.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Review not found' });
+    if (req.user.role !== 'admin' && existing.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this review' });
+    }
+
     const review = await prisma.review.update({
       where: { id: req.params.id },
       data: { rating, comment },
@@ -58,6 +64,12 @@ export const updateReview = async (req, res) => {
 
 export const deleteReview = async (req, res) => {
   try {
+    const existing = await prisma.review.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Review not found' });
+    if (req.user.role !== 'admin' && existing.userId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
+    }
+
     const review = await prisma.review.delete({ where: { id: req.params.id } });
 
     const reviews = await prisma.review.findMany({ where: { hotelId: review.hotelId } });

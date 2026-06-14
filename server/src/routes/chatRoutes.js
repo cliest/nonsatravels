@@ -15,12 +15,12 @@ import { verifyAuth, requireAdmin } from '../middleware/auth.js';
 const router = express.Router();
 
 // User routes
-router.post('/session', getUserChat);
-router.get('/:chatId', getChatById);
-router.post('/:chatId/messages', sendMessage);
-router.patch('/:chatId/read', markMessagesAsRead);
-router.post('/:chatId/rate', rateChat);
-router.post('/:chatId/transcript', sendChatTranscript);
+router.post('/session', verifyAuth, getUserChat);
+router.get('/:chatId', verifyAuth, getChatById);
+router.post('/:chatId/messages', verifyAuth, sendMessage);
+router.patch('/:chatId/read', verifyAuth, markMessagesAsRead);
+router.post('/:chatId/rate', verifyAuth, rateChat);
+router.post('/:chatId/transcript', verifyAuth, sendChatTranscript);
 
 // Admin routes
 router.get('/', verifyAuth, requireAdmin, getAllChats);
