@@ -128,18 +128,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Magic Link Option */}
-          <div className="mb-6">
-            <Link
-              to="/auth/magic-link"
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-purple-300 bg-purple-50 rounded-lg-100-100 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 shadow-sm hover:shadow"
-            >
-              <FontAwesomeIcon icon={faMagic} className="text-purple-600" />
-              <span className="font-medium text-purple-700">Sign in with Magic Link</span>
-              <span className="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">No password</span>
-            </Link>
-          </div>
-
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
