@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { assets, cities } from "../assets/assets";
 import { toast } from "../utils/toast";
+import { hotelAPI } from "../services/api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFacebook,
@@ -10,6 +11,8 @@ import {
 } from "@fortawesome/free-brands-svg-icons";
 import { faMagnifyingGlass, faAward } from "@fortawesome/free-solid-svg-icons";
 import { useTranslation } from "react-i18next";
+
+const SLIDE_INTERVAL = 6000;
 
 const Hero = () => {
   const { t } = useTranslation();
@@ -20,6 +23,39 @@ const Hero = () => {
     checkOut: "",
     guests: 1,
   });
+  const [slides, setSlides] = useState(["/src/assets/heroImage.png"]);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Build the slideshow from hotel images
+  useEffect(() => {
+    const fetchSlideImages = async () => {
+      try {
+        const response = await hotelAPI.getFeatured();
+        const hotelImages = (response.data.data || [])
+          .flatMap((hotel) => hotel.images || [])
+          .filter(Boolean);
+
+        if (hotelImages.length > 0) {
+          setSlides(hotelImages);
+        }
+      } catch {
+        // Silent fail - fall back to the default hero image
+      }
+    };
+
+    fetchSlideImages();
+  }, []);
+
+  // Cycle through slides
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+    }, SLIDE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [slides]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -52,7 +88,19 @@ const Hero = () => {
   };
 
   return (
-    <div className='relative flex flex-col items-start justify-center px-4 sm:px-6 md:px-12 lg:px-20 xl:px-32 text-white bg-[url("/src/assets/heroImage.png")] bg-no-repeat bg-cover bg-center min-h-screen border-b border-primary'>
+    <div className='relative flex flex-col items-start justify-center px-4 sm:px-6 md:px-12 lg:px-20 xl:px-32 text-white min-h-screen border-b border-primary overflow-hidden'>
+      {/* Background slideshow */}
+      {slides.map((image, index) => (
+        <div
+          key={image + index}
+          className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-opacity duration-1000 ease-in-out"
+          style={{
+            backgroundImage: `url(${image})`,
+            opacity: index === activeSlide ? 1 : 0,
+          }}
+        />
+      ))}
+
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-black/30"></div>
       
