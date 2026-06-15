@@ -7,14 +7,15 @@ import {
   deleteOffer,
 } from '../controllers/offerController.js';
 import { verifyAuth, requireAdmin } from '../middleware/auth.js';
+import { validate, offerSchema } from '../middleware/validation.js';
 
 const router = express.Router();
 
 // Routes
 router.get('/', getOffers);
 router.get('/:id', getOfferById);
-router.post('/', verifyAuth, requireAdmin, createOffer);
-router.put('/:id', verifyAuth, requireAdmin, updateOffer);
+router.post('/', verifyAuth, requireAdmin, validate(offerSchema.create), createOffer);
+router.put('/:id', verifyAuth, requireAdmin, validate(offerSchema.update), updateOffer);
 router.delete('/:id', verifyAuth, requireAdmin, deleteOffer);
 
 export default router;

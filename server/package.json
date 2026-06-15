@@ -14,7 +14,7 @@
     "hotel",
     "booking",
     "express",
-    "mongodb"
+    "postgresql"
   ],
   "author": "",
   "license": "ISC",

@@ -1,11 +1,11 @@
 # Nonsa Travels - Backend API
 
-Backend server for the Nonsa Travels hotel booking platform built with Node.js, Express, and MongoDB.
+Backend server for the Nonsa Travels hotel booking platform built with Node.js, Express, PostgreSQL, and Prisma.
 
 ## Features
 
 - ✅ RESTful API with Express.js
-- ✅ MongoDB database with Mongoose ODM
+- ✅ PostgreSQL database with Prisma ORM
 - ✅ Hotel management (CRUD operations)
 - ✅ Booking system with status management
 - ✅ Review and rating system
@@ -17,7 +17,7 @@ Backend server for the Nonsa Travels hotel booking platform built with Node.js, 
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- MongoDB (local or Atlas)
+- PostgreSQL (local or hosted)
 - npm or yarn
 
 ## Installation
@@ -35,20 +35,19 @@ cp .env.example .env
 3. Update `.env` with your configuration:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/nonsatravels
+DATABASE_URL=postgresql://user:password@localhost:5432/nonsatravels
 CLIENT_URL=http://localhost:5173
 ```
 
 ## Database Setup
 
-### Option 1: Local MongoDB
-Make sure MongoDB is installed and running locally.
-
-### Option 2: MongoDB Atlas
-1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a new cluster
-3. Get your connection string
-4. Update `MONGODB_URI` in `.env`
+1. Make sure PostgreSQL is running and `DATABASE_URL` in `.env` points to it.
+2. Apply the Prisma schema:
+```bash
+npx prisma migrate deploy
+# or, during development:
+npx prisma db push
+```
 
 ## Seeding the Database
 
@@ -128,14 +127,13 @@ Server will run on `http://localhost:5000`
 
 ```
 server/
+├── prisma/
+│   └── schema.prisma         # Database schema
 ├── src/
 │   ├── config/
-│   │   └── database.js       # MongoDB connection
-│   ├── models/
-│   │   ├── Hotel.js          # Hotel model
-│   │   ├── Booking.js        # Booking model
-│   │   ├── Review.js         # Review model
-│   │   └── Offer.js          # Offer model
+│   │   └── database.js       # Prisma connection
+│   ├── lib/
+│   │   └── prisma.js          # Prisma client
 │   ├── controllers/
 │   │   ├── hotelController.js
 │   │   ├── bookingController.js
@@ -160,18 +158,10 @@ server/
 |----------|-------------|---------|
 | `PORT` | Server port | 5000 |
 | `NODE_ENV` | Environment | development |
-| `MONGODB_URI` | MongoDB connection string | mongodb://localhost:27017/nonsatravels |
+| `DATABASE_URL` | PostgreSQL connection string | postgresql://user:password@localhost:5432/nonsatravels |
 | `CLIENT_URL` | Frontend URL for CORS | http://localhost:5173 |
 | `CLERK_PUBLISHABLE_KEY` | Clerk publishable key | - |
 | `CLERK_SECRET_KEY` | Clerk secret key | - |
-
-## Next Steps
-
-1. ✅ Backend API is ready
-2. 🔄 Update frontend to use API instead of dummy data
-3. 🔄 Add Clerk authentication middleware
-4. 🔄 Add payment gateway integration
-5. 🔄 Deploy to production (Railway, Render, or Heroku)
 
 ## License
 

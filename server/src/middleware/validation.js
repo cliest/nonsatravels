@@ -74,22 +74,6 @@ export const bookingSchema = {
   }),
 };
 
-// Review validation schemas
-export const reviewSchema = {
-  create: Joi.object({
-    hotelId: Joi.string().required(),
-    userId: Joi.string().required(),
-    userName: Joi.string().required().min(2).max(100).trim(),
-    rating: Joi.number().required().min(1).max(5),
-    comment: Joi.string().required().min(10).max(1000).trim(),
-    stayDate: Joi.date().max('now'),
-  }),
-  update: Joi.object({
-    rating: Joi.number().min(1).max(5),
-    comment: Joi.string().min(10).max(1000).trim(),
-  }),
-};
-
 // Contact validation schemas
 export const contactSchema = {
   send: Joi.object({
@@ -108,20 +92,16 @@ export const offerSchema = {
   create: Joi.object({
     title: Joi.string().required().min(5).max(100).trim(),
     description: Joi.string().required().min(10).max(500).trim(),
-    discount: Joi.number().required().min(0).max(100),
-    validFrom: Joi.date().required(),
-    validUntil: Joi.date().required().greater(Joi.ref('validFrom')),
-    hotelId: Joi.string(),
-    image: Joi.string().uri(),
+    priceOff: Joi.number().required().min(0),
+    expiryDate: Joi.string().required(),
+    image: Joi.string().uri().required(),
     isActive: Joi.boolean().default(true),
   }),
   update: Joi.object({
     title: Joi.string().min(5).max(100).trim(),
     description: Joi.string().min(10).max(500).trim(),
-    discount: Joi.number().min(0).max(100),
-    validFrom: Joi.date(),
-    validUntil: Joi.date(),
-    hotelId: Joi.string(),
+    priceOff: Joi.number().min(0),
+    expiryDate: Joi.string(),
     image: Joi.string().uri(),
     isActive: Joi.boolean(),
   }),
@@ -156,7 +136,6 @@ export const validate = (schema) => {
 export default {
   hotelSchema,
   bookingSchema,
-  reviewSchema,
   contactSchema,
   offerSchema,
   validate,
