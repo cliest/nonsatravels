@@ -82,8 +82,15 @@ router.get('/admin', verifyAuth, requireAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const { status } = req.query;
-    const where = status ? { status } : {};
+    const { status, search } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { excerpt: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [total, posts] = await Promise.all([
       prisma.blogPost.count({ where }),
@@ -173,6 +180,24 @@ router.put('/:id', verifyAuth, requireAdmin, async (req, res) => {
     res.status(200).json({ success: true, data: post, message: 'Blog post updated successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to update blog post' });
+  }
+});
+
+// @route   PATCH /api/blog/:id/featured
+router.patch('/:id/featured', verifyAuth, requireAdmin, async (req, res) => {
+  try {
+    const existing = await prisma.blogPost.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Blog post not found' });
+
+    const post = await prisma.blogPost.update({
+      where: { id: req.params.id },
+      data: { isFeatured: !existing.isFeatured },
+      include: { author: { select: authorSelect } },
+    });
+
+    res.status(200).json({ success: true, data: post, message: `Blog post ${post.isFeatured ? 'featured' : 'unfeatured'} successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to toggle featured status' });
   }
 });
 

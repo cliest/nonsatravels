@@ -10,7 +10,7 @@ export const blogAPI = {
   getTags: () => api.get('/blog/tags'),
   
   // Admin routes
-  getAllAdmin: (params) => api.get('/blog/admin/all', { params }),
+  getAllAdmin: (params) => api.get('/blog/admin', { params }),
   getById: (id) => api.get(`/blog/admin/${id}`),
   create: (data) => api.post('/blog', data),
   update: (id, data) => api.put(`/blog/${id}`, data),
