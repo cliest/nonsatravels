@@ -495,6 +495,7 @@ const ChatWidget = () => {
           </div>
 
           {/* Input */}
+          {!(!isSignedIn && !guestInfo) && (
           <form
             onSubmit={handleSendMessage}
             className="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex-shrink-0"
@@ -540,6 +541,7 @@ const ChatWidget = () => {
               </button>
             </div>
           </form>
+          )}
         </div>
       )}
     </>
