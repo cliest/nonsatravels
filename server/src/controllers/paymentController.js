@@ -51,6 +51,8 @@ export const initiateMoMo = async (req, res) => {
       callbackUrl: WEBHOOK_URL,
     });
 
+    console.log(`[initiateMoMo] bookingId=${booking.id} phone=${phoneNumber} lipilaResponse=`, JSON.stringify(lipilaRes));
+
     await prisma.booking.update({
       where: { id: booking.id },
       data: { paymentId: lipilaRes.identifier },
@@ -141,9 +143,13 @@ export const checkStatus = async (req, res) => {
   const { referenceId } = req.params;
 
   try {
-    const lipilaData = await checkCollectionStatus(referenceId);
-
     const booking = await prisma.booking.findUnique({ where: { id: referenceId } });
+
+    // Use Lipila's own identifier (stored as paymentId) — falls back to our referenceId
+    const lipilaRef = booking?.paymentId || referenceId;
+    const lipilaData = await checkCollectionStatus(lipilaRef);
+
+    console.log(`[checkStatus] referenceId=${referenceId} lipilaRef=${lipilaRef} lipilaStatus=${lipilaData?.status} raw=`, JSON.stringify(lipilaData));
 
     return res.status(200).json({
       success: true,
@@ -161,6 +167,7 @@ export const checkStatus = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('[checkStatus] error:', err.response?.data || err.message);
     return res.status(502).json({ success: false, message: 'Failed to check payment status' });
   }
 };
