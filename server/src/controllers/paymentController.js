@@ -10,7 +10,6 @@ const buildBookingPayload = (body) => ({
   checkInDate: new Date(body.checkInDate),
   checkOutDate: new Date(body.checkOutDate),
   guests: body.guests,
-  roomsRequested: body.roomsRequested || body.guests || 1,
   totalPrice: body.totalPrice,
   userName: body.userName,
   userEmail: body.userEmail,
