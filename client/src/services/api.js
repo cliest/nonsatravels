@@ -127,7 +127,6 @@ export const bookingAPI = {
   cancel: (id) => api.delete(`/bookings/${id}`),
   deletePermanently: (id) => api.delete(`/bookings/${id}/permanent`),
   getStats: () => api.get('/bookings/stats'),
-  sendBankDetails: (id, bankDetails) => api.post(`/bookings/${id}/send-bank-details`, bankDetails),
 };
 
 // Review API

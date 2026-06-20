@@ -147,18 +147,6 @@ const AdminDashboard = () => {
     metaDescription: "",
   });
 
-  // Bank Details Management
-  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
-  const [selectedBookingForBank, setSelectedBookingForBank] = useState(null);
-  const [bankDetails, setBankDetails] = useState({
-    bankName: "",
-    accountName: "",
-    accountNumber: "",
-    branchCode: "",
-    swiftCode: "",
-    additionalInfo: "",
-  });
-
   // Available amenities
   const availableAmenities = [
     "Free WiFi",
@@ -894,52 +882,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle sending bank details
-  const handleSendBankDetails = async (e) => {
-    e.preventDefault();
-    
-    if (!bankDetails.bankName || !bankDetails.accountName || !bankDetails.accountNumber) {
-      toast.warning("Please fill in all required fields (Bank Name, Account Name, and Account Number)");
-      return;
-    }
-
-    try {
-      await bookingAPI.sendBankDetails(selectedBookingForBank.id, bankDetails);
-      toast.success("Bank details sent successfully to customer!");
-      setShowBankDetailsModal(false);
-      setBankDetails({
-        bankName: "",
-        accountName: "",
-        accountNumber: "",
-        branchCode: "",
-        swiftCode: "",
-        additionalInfo: "",
-      });
-      setSelectedBookingForBank(null);
-      // Refresh bookings to get updated data
-      fetchAllData();
-    } catch (error) {
-      // Error toast handled by API interceptor
-    }
-  };
-
-  // Open bank details modal
-  const openBankDetailsModal = (booking) => {
-    setSelectedBookingForBank(booking);
-    // Pre-fill with existing bank details if available
-    if (booking.bankDetails) {
-      setBankDetails({
-        bankName: booking.bankDetails.bankName || "",
-        accountName: booking.bankDetails.accountName || "",
-        accountNumber: booking.bankDetails.accountNumber || "",
-        branchCode: booking.bankDetails.branchCode || "",
-        swiftCode: booking.bankDetails.swiftCode || "",
-        additionalInfo: booking.bankDetails.additionalInfo || "",
-      });
-    }
-    setShowBankDetailsModal(true);
-  };
-
   // Cancel booking
   const handleCancelBooking = async (bookingId) => {
     if (confirm("Are you sure you want to cancel this booking?")) {
@@ -1404,7 +1346,6 @@ const AdminDashboard = () => {
                           onUpdateStatus={handleUpdateBookingStatus}
                           onCancel={handleCancelBooking}
                           onDelete={handleDeleteBooking}
-                          onSendBankDetails={openBankDetailsModal}
                         />
                       ))}
                     </tbody>
@@ -1420,7 +1361,6 @@ const AdminDashboard = () => {
                       onUpdateStatus={handleUpdateBookingStatus}
                       onCancel={handleCancelBooking}
                       onDelete={handleDeleteBooking}
-                      onSendBankDetails={openBankDetailsModal}
                       onDownloadInvoice={handleDownloadInvoice}
                       onSendInvoice={handleSendInvoice}
                     />
@@ -2430,172 +2370,6 @@ const AdminDashboard = () => {
           />
         )}
 
-        {/* Bank Details Modal */}
-        {showBankDetailsModal && selectedBookingForBank && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Send Bank Transfer Details</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Booking #{selectedBookingForBank.id.slice(-6)} • {selectedBookingForBank.userName}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowBankDetailsModal(false);
-                    setSelectedBookingForBank(null);
-                  }}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <FontAwesomeIcon icon={faTimes} />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <form onSubmit={handleSendBankDetails} className="p-6">
-                <div className="space-y-4">
-                  {/* Bank Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bank Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankDetails.bankName}
-                      onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="e.g., Standard Bank Zambia"
-                      required
-                    />
-                  </div>
-
-                  {/* Account Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankDetails.accountName}
-                      onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="e.g., Nonsa Travels Ltd"
-                      required
-                    />
-                  </div>
-
-                  {/* Account Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankDetails.accountNumber}
-                      onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="e.g., 1234567890"
-                      required
-                    />
-                  </div>
-
-                  {/* Branch Code */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Branch Code (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={bankDetails.branchCode}
-                      onChange={(e) => setBankDetails({ ...bankDetails, branchCode: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="e.g., 250"
-                    />
-                  </div>
-
-                  {/* SWIFT Code */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      SWIFT Code (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={bankDetails.swiftCode}
-                      onChange={(e) => setBankDetails({ ...bankDetails, swiftCode: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="e.g., SBICZMLX"
-                    />
-                  </div>
-
-                  {/* Additional Info */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Instructions (Optional)
-                    </label>
-                    <textarea
-                      value={bankDetails.additionalInfo}
-                      onChange={(e) => setBankDetails({ ...bankDetails, additionalInfo: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                      rows="3"
-                      placeholder="Any special instructions or notes for the customer..."
-                    />
-                  </div>
-
-                  {/* Info Box */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                    <div className="flex gap-3">
-                      <div className="text-blue-600 mt-0.5">
-                        <FontAwesomeIcon icon={faClock} />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-blue-900 mb-1">What happens next?</h4>
-                        <ul className="text-sm text-blue-800 space-y-1">
-                          <li>• Customer will receive an email with these bank details</li>
-                          <li>• They'll be instructed to use Booking ID as payment reference</li>
-                          <li>• You can update the booking status after payment verification</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedBookingForBank.bankDetailsSentAt && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> Bank details were previously sent on{" "}
-                        {new Date(selectedBookingForBank.bankDetailsSentAt).toLocaleString()}.
-                        Submitting this form will resend updated details.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Modal Footer */}
-                <div className="flex gap-3 justify-end mt-6 pt-6 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowBankDetailsModal(false);
-                      setSelectedBookingForBank(null);
-                    }}
-                    className="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium transition-colors flex items-center gap-2"
-                  >
-                    <FontAwesomeIcon icon={faDollarSign} />
-                    Send Bank Details
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
         {/* User Details Modal */}
         {showUserDetailsModal && selectedUser && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -3534,7 +3308,7 @@ ActivityItem.propTypes = {
 
 // Booking Row Component
 // Booking Row Component
-const BookingRow = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDetails }) => {
+const BookingRow = ({ booking, onUpdateStatus, onCancel, onDelete }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -3594,21 +3368,6 @@ const BookingRow = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDet
             {/* Dropdown Menu */}
             {showActions && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                {/* Send Bank Details - for pending_payment with bank_transfer */}
-                {booking.paymentMethod === "bank_transfer" && 
-                 (booking.status === "pending_payment" || booking.status === "payment_confirmed") && (
-                  <button
-                    onClick={() => {
-                      onSendBankDetails(booking);
-                      setShowActions(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-purple-50 text-purple-600 text-sm font-medium flex items-center gap-2 border-b border-gray-100"
-                  >
-                    <FontAwesomeIcon icon={faDollarSign} />
-                    {booking.bankDetailsSentAt ? "Resend" : "Send"} Bank Details
-                  </button>
-                )}
-                
                 {/* Confirm Payment Received - for pending_payment status */}
                 {booking.status === "pending_payment" && (
                   <>
@@ -3753,54 +3512,6 @@ const BookingRow = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDet
               </div>
             </div>
 
-            {/* Bank Details Section - Show if sent */}
-            {booking.bankDetails && booking.bankDetailsSentAt && (
-              <div className="mt-4 pt-4 border-t border-gray-300">
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-purple-900 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faDollarSign} />
-                      Bank Transfer Details Sent
-                    </h4>
-                    <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
-                      {new Date(booking.bankDetailsSentAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-purple-700 font-medium">Bank Name:</p>
-                      <p className="text-purple-900 font-semibold">{booking.bankDetails.bankName}</p>
-                    </div>
-                    <div>
-                      <p className="text-purple-700 font-medium">Account Name:</p>
-                      <p className="text-purple-900 font-semibold">{booking.bankDetails.accountName}</p>
-                    </div>
-                    <div>
-                      <p className="text-purple-700 font-medium">Account Number:</p>
-                      <p className="text-purple-900 font-semibold font-mono">{booking.bankDetails.accountNumber}</p>
-                    </div>
-                    {booking.bankDetails.branchCode && (
-                      <div>
-                        <p className="text-purple-700 font-medium">Branch Code:</p>
-                        <p className="text-purple-900 font-semibold">{booking.bankDetails.branchCode}</p>
-                      </div>
-                    )}
-                    {booking.bankDetails.swiftCode && (
-                      <div>
-                        <p className="text-purple-700 font-medium">SWIFT Code:</p>
-                        <p className="text-purple-900 font-semibold">{booking.bankDetails.swiftCode}</p>
-                      </div>
-                    )}
-                    {booking.bankDetails.additionalInfo && (
-                      <div className="md:col-span-2">
-                        <p className="text-purple-700 font-medium">Additional Instructions:</p>
-                        <p className="text-purple-900 bg-white p-2 rounded mt-1">{booking.bankDetails.additionalInfo}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </td>
         </tr>
       )}
@@ -3813,11 +3524,10 @@ BookingRow.propTypes = {
   onUpdateStatus: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
-  onSendBankDetails: PropTypes.func.isRequired,
 };
 
 // Mobile Booking Card Component
-const BookingCard = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDetails, onDownloadInvoice, onSendInvoice }) => {
+const BookingCard = ({ booking, onUpdateStatus, onCancel, onDelete, onDownloadInvoice, onSendInvoice }) => {
   const [showActions, setShowActions] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -3907,12 +3617,6 @@ const BookingCard = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDe
               </div>
             )}
             
-            {booking.bankDetails && booking.bankDetailsSentAt && (
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <p className="text-xs text-purple-700 font-medium mb-1">Bank Details Sent</p>
-                <p className="text-xs text-purple-600">{new Date(booking.bankDetailsSentAt).toLocaleString()}</p>
-              </div>
-            )}
           </div>
         )}
 
@@ -3939,21 +3643,6 @@ const BookingCard = ({ booking, onUpdateStatus, onCancel, onDelete, onSendBankDe
           {/* Actions Dropdown */}
           {showActions && (
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-20">
-              {/* Send Bank Details - for pending_payment with bank_transfer */}
-              {booking.paymentMethod === "bank_transfer" && 
-               (booking.status === "pending_payment" || booking.status === "payment_confirmed") && (
-                <button
-                  onClick={() => {
-                    onSendBankDetails(booking);
-                    setShowActions(false);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-purple-50 text-purple-600 text-sm font-medium flex items-center gap-3 border-b border-gray-100"
-                >
-                  <FontAwesomeIcon icon={faDollarSign} className="w-4" />
-                  {booking.bankDetailsSentAt ? "Resend" : "Send"} Bank Details
-                </button>
-              )}
-              
               {/* Confirm Payment Received - for pending_payment status */}
               {booking.status === "pending_payment" && (
                 <>
@@ -4110,7 +3799,6 @@ BookingCard.propTypes = {
   onUpdateStatus: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
-  onSendBankDetails: PropTypes.func.isRequired,
 };
 
 // Status Badge Component

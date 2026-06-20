@@ -40,7 +40,7 @@ const FAQ = () => {
       questions: [
         {
           question: "What payment methods do you accept?",
-          answer: "We accept major credit and debit cards (Visa, Mastercard, American Express), PayPal, and bank transfers. All payments are processed securely through our encrypted payment gateway.",
+          answer: "We accept major credit and debit cards (Visa, Mastercard), mobile money (MTN, Airtel Money, Zamtel Kwacha), and cash payments at the hotel. All online payments are processed securely through our encrypted payment gateway.",
         },
         {
           question: "Are there any hidden fees?",

@@ -9,14 +9,11 @@ import {
   faCar,
   faUtensils,
   faInfoCircle,
-  faUniversity,
   faMoneyBillWave,
-  faCopy,
   faTag,
   faSpinner,
   faTimes,
   faShield,
-  faTriangleExclamation,
   faCircleCheck,
   faMobilePhone,
   faCreditCard,
@@ -36,7 +33,7 @@ const Payment = () => {
   
   const bookingData = location.state?.bookingData;
 
-  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [paymentMethod, setPaymentMethod] = useState("mobile_money");
   const [processing, setProcessing] = useState(false);
   const [momoPhone, setMomoPhone] = useState("");
   const [momoPolling, setMomoPolling] = useState(false);
@@ -194,12 +191,6 @@ const Payment = () => {
     setPromoError("");
   };
 
-  // Copy bank details to clipboard
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
-  };
-
   const pollMoMoStatus = (referenceId) => {
     setMomoPolling(true);
     const maxAttempts = 24; // 2 minutes at 5s intervals
@@ -256,32 +247,17 @@ const Payment = () => {
     setProcessing(true);
 
     try {
-      // For bank transfer or cash, create booking with pending payment
-      if (paymentMethod === "bank_transfer" || paymentMethod === "cash") {
-        const serviceCosts = {
-          airportTransfer: 50,
-          earlyCheckIn: 30,
-          lateCheckOut: 30,
-          extraBed: 25,
-          breakfast: 15,
-        };
-
+      // Cash payment — create booking with pending status
+      if (paymentMethod === "cash") {
+        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
         let additionalCost = 0;
         Object.keys(additionalServices).forEach((service) => {
-          if (additionalServices[service]) {
-            additionalCost += serviceCosts[service];
-          }
+          if (additionalServices[service]) additionalCost += serviceCosts[service];
         });
 
         const totalAmount = (bookingData.totalPrice || 0) + additionalCost;
-        
-        // Validate total amount
         if (!totalAmount || totalAmount <= 0) {
           toast.error("Invalid booking amount. Please try again.");
-          console.error(" Invalid totalAmount:");
-          console.error("- bookingData.totalPrice:", bookingData.totalPrice, "type:", typeof bookingData.totalPrice);
-          console.error("- additionalCost:", additionalCost);
-          console.error("- totalAmount:", totalAmount);
           return;
         }
 
@@ -297,32 +273,16 @@ const Payment = () => {
           userPhone: personalInfo.phone,
           specialRequests: personalInfo.specialRequests || null,
           roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
-          paymentMethod: paymentMethod,
+          paymentMethod: "cash",
           paymentStatus: "pending",
           status: "pending_payment",
         };
 
-        console.log(" Booking Payload to send:");
-        console.log("- hotelId:", bookingPayload.hotelId);
-        console.log("- totalPrice:", bookingPayload.totalPrice, "type:", typeof bookingPayload.totalPrice);
-        console.log("- userName:", bookingPayload.userName);
-        console.log("- userEmail:", bookingPayload.userEmail);
-        console.log("Full payload:", JSON.stringify(bookingPayload, null, 2));
         const response = await bookingAPI.create(bookingPayload);
-
-        if (paymentMethod === "bank_transfer") {
-          toast.success("Booking confirmed! Bank details and invoice have been sent to your email.");
-        } else {
-          toast.success("Booking confirmed! An invoice has been sent to your email.");
-        }
-        
+        toast.success("Booking confirmed! An invoice has been sent to your email.");
         setTimeout(() => {
-          navigate("/booking-confirmation", { 
-            state: { 
-              booking: response.data.data,
-              hotel: bookingData,
-              paymentMethod: paymentMethod
-            } 
+          navigate("/booking-confirmation", {
+            state: { booking: response.data.data, hotel: bookingData, paymentMethod: "cash" },
           });
         }, 1500);
         return;
@@ -400,9 +360,7 @@ const Payment = () => {
     } catch (error) {
       console.error("Booking Error Details:", error.response?.data || error.message);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || "An error occurred";
-      toast.error(paymentMethod === "bank_transfer" 
-        ? `Failed to submit booking: ${errorMessage}` 
-        : `Payment failed: ${errorMessage}`);
+      toast.error(`Payment failed: ${errorMessage}`);
       setProcessing(false);
     }
   };
@@ -869,25 +827,6 @@ const Payment = () => {
 
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod("bank_transfer")}
-                      className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-                        paymentMethod === "bank_transfer"
-                          ? "border-blue-600 bg-blue-50 shadow-lg scale-105"
-                          : "border-gray-200 hover:border-blue-400 hover:shadow-md"
-                      }`}
-                    >
-                      <FontAwesomeIcon
-                        icon={faUniversity}
-                        className={`text-3xl md:text-4xl mb-2 ${
-                          paymentMethod === "bank_transfer" ? "text-blue-600" : "text-gray-400"
-                        }`}
-                      />
-                      <span className="text-xs md:text-sm font-semibold">Bank Transfer</span>
-                      <span className="text-[10px] text-gray-500 mt-1">Direct deposit</span>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setPaymentMethod("cash")}
                       className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
                         paymentMethod === "cash"
@@ -906,73 +845,6 @@ const Payment = () => {
                     </button>
                   </div>
                 </div>
-
-                {paymentMethod === "bank_transfer" && (
-                  <div className="bg-blue-50 p-6 rounded-xl border-2 border-blue-200 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <FontAwesomeIcon icon={faUniversity} className="text-4xl text-blue-600" />
-                      <div>
-                        <h4 className="font-bold text-gray-900">Bank Transfer Details</h4>
-                        <p className="text-sm text-gray-600">Transfer to our account below</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-4 space-y-3 mb-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Bank Name:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">Stanbic Bank Zambia</span>
-                          <button onClick={() => copyToClipboard('Stanbic Bank Zambia')} className="text-blue-600 hover:text-blue-800">
-                            <FontAwesomeIcon icon={faCopy} className="text-sm" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Account Name:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">Nonsa Travels Ltd</span>
-                          <button onClick={() => copyToClipboard('Nonsa Travels Ltd')} className="text-blue-600 hover:text-blue-800">
-                            <FontAwesomeIcon icon={faCopy} className="text-sm" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Account Number:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 font-mono">9130002541234</span>
-                          <button onClick={() => copyToClipboard('9130002541234')} className="text-blue-600 hover:text-blue-800">
-                            <FontAwesomeIcon icon={faCopy} className="text-sm" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Branch Code:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 font-mono">040001</span>
-                          <button onClick={() => copyToClipboard('040001')} className="text-blue-600 hover:text-blue-800">
-                            <FontAwesomeIcon icon={faCopy} className="text-sm" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Swift Code:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 font-mono">SBICZMLX</span>
-                          <button onClick={() => copyToClipboard('SBICZMLX')} className="text-blue-600 hover:text-blue-800">
-                            <FontAwesomeIcon icon={faCopy} className="text-sm" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <p className="text-sm text-yellow-800">
-                        <FontAwesomeIcon icon={faTriangleExclamation} className="mr-1" /><strong>Important:</strong> Use your <strong>email address</strong> as the payment reference. 
-                        Send proof of payment to <strong>payments@nonsatravels.com</strong>
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {paymentMethod === "mobile_money" && (
                   <div className="bg-yellow-50 p-6 rounded-xl border-2 border-yellow-300 mb-6">

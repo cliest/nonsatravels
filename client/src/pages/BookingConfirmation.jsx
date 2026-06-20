@@ -15,7 +15,6 @@ import {
   faShare,
   faHome,
   faCopy,
-  faUniversity,
   faMoneyBillWave,
   faInfoCircle,
   faArrowRight,
@@ -95,20 +94,7 @@ const BookingConfirmation = () => {
   };
 
   const getStatusInfo = () => {
-    if (paymentMethod === "bank_transfer") {
-      return {
-        color: "yellow",
-        icon: faUniversity,
-        title: "Awaiting Payment Verification",
-        message: "We've sent bank transfer details along with an invoice to your email. Please complete the transfer within 24 hours.",
-        steps: [
-          "Check your email for bank transfer details and invoice",
-          "Make the transfer using your booking ID as reference",
-          "Send proof of payment to payments@nonsatravels.com",
-          "We'll confirm your booking within 24 hours"
-        ]
-      };
-    } else if (paymentMethod === "cash") {
+    if (paymentMethod === "cash") {
       return {
         color: "green",
         icon: faMoneyBillWave,
@@ -335,29 +321,13 @@ const BookingConfirmation = () => {
                       <span className="text-sm text-gray-600">Payment Method</span>
                     </div>
                     <span className="font-medium text-gray-900 capitalize">
-                      {paymentMethod === "bank_transfer" ? "Bank Transfer" : paymentMethod === "cash" ? "Pay at Hotel" : paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "card" ? "Card" : paymentMethod}
+                      {paymentMethod === "cash" ? "Pay at Hotel" : paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "card" ? "Card" : paymentMethod}
                     </span>
                   </div>
                 </div>
               </div>
             )}
           </div>
-
-          {/* Important Notes for Bank Transfer */}
-          {paymentMethod === "bank_transfer" && (
-            <div className="mx-6 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-                <FontAwesomeIcon icon={faUniversity} />
-                Bank Transfer Instructions
-              </h3>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• Check your email for complete bank details and invoice</li>
-                <li>• Use your Booking ID as payment reference</li>
-                <li>• Transfer must be completed within 24 hours</li>
-                <li>• Send proof of payment to payments@nonsatravels.com</li>
-              </ul>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="p-6 bg-gray-50 rounded-b-3xl">

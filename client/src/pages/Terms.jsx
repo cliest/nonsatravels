@@ -104,7 +104,7 @@ const Terms = () => {
                 <li>You will pay all charges incurred</li>
               </ul>
               <p className="text-gray-700 leading-relaxed">
-                We accept credit cards, debit cards, PayPal, and bank transfers. All prices are displayed in the local currency unless otherwise specified. Additional taxes or fees may apply depending on the destination.
+                We accept credit cards, debit cards, and mobile money (MTN, Airtel Money, Zamtel Kwacha). Cash payments are also accepted directly at the hotel. All prices are displayed in the local currency unless otherwise specified. Additional taxes or fees may apply depending on the destination.
               </p>
             </section>
 
