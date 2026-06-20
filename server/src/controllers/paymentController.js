@@ -145,29 +145,41 @@ export const checkStatus = async (req, res) => {
   try {
     const booking = await prisma.booking.findUnique({ where: { id: referenceId } });
 
-    // Use Lipila's own identifier (stored as paymentId) — falls back to our referenceId
-    const lipilaRef = booking?.paymentId || referenceId;
-    const lipilaData = await checkCollectionStatus(lipilaRef);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
 
-    console.log(`[checkStatus] referenceId=${referenceId} lipilaRef=${lipilaRef} lipilaStatus=${lipilaData?.status} raw=`, JSON.stringify(lipilaData));
+    // If webhook already confirmed the payment, report success immediately
+    if (booking.status === 'payment_confirmed') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: 'Successful',
+          booking: { id: booking.id, status: booking.status, paymentStatus: booking.paymentStatus },
+        },
+      });
+    }
+
+    // Try Lipila check-status using our referenceId (the booking ID we sent at initiation)
+    let lipilaStatus = 'Pending';
+    try {
+      const lipilaData = await checkCollectionStatus(referenceId);
+      lipilaStatus = lipilaData?.status || 'Pending';
+      console.log(`[checkStatus] ref=${referenceId} lipilaStatus=${lipilaStatus}`);
+    } catch (lipilaErr) {
+      // Lipila check failed — keep polling; webhook will confirm when payment completes
+      console.log(`[checkStatus] Lipila unreachable (${lipilaErr.message}), relying on webhook`);
+    }
 
     return res.status(200).json({
       success: true,
       data: {
-        status: lipilaData.status,
-        paymentType: lipilaData.paymentType,
-        message: lipilaData.message,
-        booking: booking
-          ? {
-              id: booking.id,
-              status: booking.status,
-              paymentStatus: booking.paymentStatus,
-            }
-          : null,
+        status: lipilaStatus,
+        booking: { id: booking.id, status: booking.status, paymentStatus: booking.paymentStatus },
       },
     });
   } catch (err) {
-    console.error('[checkStatus] error:', err.response?.data || err.message);
+    console.error('[checkStatus] error:', err.message);
     return res.status(502).json({ success: false, message: 'Failed to check payment status' });
   }
 };

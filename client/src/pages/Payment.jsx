@@ -194,7 +194,7 @@ const Payment = () => {
 
   const pollMoMoStatus = (referenceId) => {
     setMomoPolling(true);
-    const maxAttempts = 24; // 2 minutes at 5s intervals
+    const maxAttempts = 60; // 5 minutes at 5s intervals
     let attempts = 0;
 
     const interval = setInterval(async () => {
