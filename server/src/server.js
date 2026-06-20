@@ -21,6 +21,7 @@ import loyaltyRoutes from './routes/loyaltyRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import promoRoutes from './routes/promoRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import { startBookingScheduler } from './utils/bookingScheduler.js';
 import { initializeSocket } from './utils/socketManager.js';
 import logger from './utils/logger.js';
@@ -116,6 +117,7 @@ app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/promo', promoRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check route with detailed info
 app.get('/api/health', (req, res) => {

@@ -18,22 +18,28 @@ import {
   faShield,
   faTriangleExclamation,
   faCircleCheck,
+  faMobilePhone,
+  faCreditCard,
+  faHourglassHalf,
 } from "@fortawesome/free-solid-svg-icons";
 import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { bookingAPI, promoAPI } from "../services/api";
+import { paymentAPI } from "../services/paymentAPI";
 import { toast } from "../utils/toast";
 import { useAuth, useUser } from "../context/AuthContext";
 
 const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isSignedIn } = useAuth();
+  useAuth();
   const { user } = useUser();
   
   const bookingData = location.state?.bookingData;
 
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [processing, setProcessing] = useState(false);
+  const [momoPhone, setMomoPhone] = useState("");
+  const [momoPolling, setMomoPolling] = useState(false);
   
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -194,65 +200,50 @@ const Payment = () => {
     toast.success('Copied to clipboard!');
   };
 
-  const completeBooking = async (paymentId, method = paymentMethod) => {
-    try {
-      const serviceCosts = {
-        airportTransfer: 50,
-        earlyCheckIn: 30,
-        lateCheckOut: 30,
-        extraBed: 25,
-        breakfast: 15,
-      };
+  const pollMoMoStatus = (referenceId) => {
+    setMomoPolling(true);
+    const maxAttempts = 24; // 2 minutes at 5s intervals
+    let attempts = 0;
 
-      let additionalCost = 0;
-      Object.keys(additionalServices).forEach((service) => {
-        if (additionalServices[service]) {
-          additionalCost += serviceCosts[service];
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await paymentAPI.checkStatus(referenceId);
+        const { status, booking: bookingState } = res.data.data;
+
+        if (status === "Successful" || bookingState?.status === "payment_confirmed") {
+          clearInterval(interval);
+          setMomoPolling(false);
+          toast.success("Payment confirmed! Redirecting...");
+          const bookingRes = await bookingAPI.getById(referenceId).catch(() => null);
+          navigate("/booking-confirmation", {
+            state: {
+              booking: bookingRes?.data?.data || { id: referenceId },
+              hotel: bookingData,
+              paymentMethod: "mobile_money",
+            },
+          });
+          return;
         }
-      });
 
-      const totalAmount = bookingData.totalPrice + additionalCost;
-
-      // Prepare comprehensive booking payload
-      const bookingPayload = {
-        hotelId: bookingData.hotelId,
-        checkInDate: bookingData.checkInDate,
-        checkOutDate: bookingData.checkOutDate,
-        guests: bookingData.guests,
-        roomsRequested: bookingData.guests || 1, // Number of rooms needed
-        totalPrice: totalAmount,
-        userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
-        userEmail: personalInfo.email,
-        userPhone: personalInfo.phone,
-        specialRequests: personalInfo.specialRequests || null,
-        roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
-        paymentId,
-        paymentMethod: method,
-        paymentStatus: "completed",
-        status: "payment_confirmed",
-      };
-
-      const response = await bookingAPI.create(bookingPayload);
-
-      if (method === "bank_transfer") {
-        toast.success("Booking submitted! Bank details and invoice have been sent to your email.");
-      } else {
-        toast.success("Booking submitted successfully! An invoice has been sent to your email.");
+        if (status === "Failed") {
+          clearInterval(interval);
+          setMomoPolling(false);
+          setProcessing(false);
+          toast.error("Mobile money payment failed. Please try again.");
+          return;
+        }
+      } catch {
+        // Keep polling on transient errors
       }
-      
-      setTimeout(() => {
-        navigate("/booking-confirmation", { 
-          state: { 
-            booking: response.data.data,
-            hotel: bookingData,
-            paymentMethod: method
-          } 
-        });
-      }, 1500);
-    } catch (error) {
-      toast.error("Booking submission failed. Please contact support with your payment reference.");
-      setProcessing(false);
-    }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setMomoPolling(false);
+        setProcessing(false);
+        toast.warning("Payment is still pending. Check your bookings later or contact support.");
+      }
+    }, 5000);
   };
 
   const handlePayment = async (e) => {
@@ -337,10 +328,75 @@ const Payment = () => {
         return;
       }
 
-      // For other payment methods
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      await completeBooking(paymentId);
+      // Mobile Money via Lipila
+      if (paymentMethod === "mobile_money") {
+        if (!momoPhone || momoPhone.trim().length < 9) {
+          toast.warning("Please enter a valid mobile money phone number");
+          setProcessing(false);
+          return;
+        }
+
+        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
+        let additionalCost = 0;
+        Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
+
+        const response = await paymentAPI.initiateMoMo({
+          hotelId: bookingData.hotelId,
+          hotelName: bookingData.hotelName,
+          checkInDate: bookingData.checkInDate,
+          checkOutDate: bookingData.checkOutDate,
+          guests: bookingData.guests,
+          totalPrice: (bookingData.totalPrice + additionalCost) - getDiscount(),
+          userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
+          userEmail: personalInfo.email,
+          userPhone: personalInfo.phone,
+          specialRequests: personalInfo.specialRequests || null,
+          roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
+          phoneNumber: momoPhone.replace(/\s/g, ""),
+        });
+
+        const { referenceId } = response.data.data;
+        toast.success("Check your phone for the mobile money payment prompt!");
+        pollMoMoStatus(referenceId);
+        return;
+      }
+
+      // Card payment via Lipila
+      if (paymentMethod === "card") {
+        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
+        let additionalCost = 0;
+        Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
+
+        const response = await paymentAPI.initiateCard({
+          hotelId: bookingData.hotelId,
+          hotelName: bookingData.hotelName,
+          checkInDate: bookingData.checkInDate,
+          checkOutDate: bookingData.checkOutDate,
+          guests: bookingData.guests,
+          totalPrice: (bookingData.totalPrice + additionalCost) - getDiscount(),
+          userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
+          userEmail: personalInfo.email,
+          userPhone: personalInfo.phone,
+          specialRequests: personalInfo.specialRequests || null,
+          roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
+          personalInfo: {
+            firstName: personalInfo.firstName,
+            lastName: personalInfo.lastName,
+            phone: personalInfo.phone,
+            city: personalInfo.city || "Lusaka",
+            address: personalInfo.address || "N/A",
+          },
+        });
+
+        const { checkoutUrl } = response.data.data;
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl;
+        } else {
+          toast.error("Could not get card payment URL. Please try again.");
+          setProcessing(false);
+        }
+        return;
+      }
     } catch (error) {
       console.error("Booking Error Details:", error.response?.data || error.message);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || "An error occurred";
@@ -775,6 +831,44 @@ const Payment = () => {
                   <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <button
                       type="button"
+                      onClick={() => setPaymentMethod("mobile_money")}
+                      className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
+                        paymentMethod === "mobile_money"
+                          ? "border-yellow-500 bg-yellow-50 shadow-lg scale-105"
+                          : "border-gray-200 hover:border-yellow-400 hover:shadow-md"
+                      }`}
+                    >
+                      <FontAwesomeIcon
+                        icon={faMobilePhone}
+                        className={`text-3xl md:text-4xl mb-2 ${
+                          paymentMethod === "mobile_money" ? "text-yellow-600" : "text-gray-400"
+                        }`}
+                      />
+                      <span className="text-xs md:text-sm font-semibold">Mobile Money</span>
+                      <span className="text-[10px] text-gray-500 mt-1">MTN / Airtel / Zamtel</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("card")}
+                      className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
+                        paymentMethod === "card"
+                          ? "border-purple-600 bg-purple-50 shadow-lg scale-105"
+                          : "border-gray-200 hover:border-purple-400 hover:shadow-md"
+                      }`}
+                    >
+                      <FontAwesomeIcon
+                        icon={faCreditCard}
+                        className={`text-3xl md:text-4xl mb-2 ${
+                          paymentMethod === "card" ? "text-purple-600" : "text-gray-400"
+                        }`}
+                      />
+                      <span className="text-xs md:text-sm font-semibold">Card</span>
+                      <span className="text-[10px] text-gray-500 mt-1">Visa / Mastercard</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => setPaymentMethod("bank_transfer")}
                       className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
                         paymentMethod === "bank_transfer"
@@ -880,6 +974,62 @@ const Payment = () => {
                   </div>
                 )}
 
+                {paymentMethod === "mobile_money" && (
+                  <div className="bg-yellow-50 p-6 rounded-xl border-2 border-yellow-300 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <FontAwesomeIcon icon={faMobilePhone} className="text-4xl text-yellow-600" />
+                      <div>
+                        <h4 className="font-bold text-gray-900">Mobile Money Payment</h4>
+                        <p className="text-sm text-gray-600">MTN, Airtel Money or Zamtel Kwacha</p>
+                      </div>
+                    </div>
+
+                    {momoPolling ? (
+                      <div className="text-center py-6">
+                        <FontAwesomeIcon icon={faHourglassHalf} className="text-4xl text-yellow-500 mb-3 animate-pulse" />
+                        <p className="font-semibold text-gray-900 mb-1">Waiting for payment...</p>
+                        <p className="text-sm text-gray-600">Check your phone for the mobile money prompt and enter your PIN to confirm.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Mobile Money Number *
+                          </label>
+                          <input
+                            type="tel"
+                            value={momoPhone}
+                            onChange={(e) => setMomoPhone(e.target.value)}
+                            placeholder="260971234567"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Enter your number in international format: 260XXXXXXXXX</p>
+                        </div>
+                        <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                          <FontAwesomeIcon icon={faInfoCircle} className="mr-1" />
+                          You will receive a payment prompt on your phone. Enter your PIN to complete the payment.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {paymentMethod === "card" && (
+                  <div className="bg-purple-50 p-6 rounded-xl border-2 border-purple-200 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <FontAwesomeIcon icon={faCreditCard} className="text-4xl text-purple-600" />
+                      <div>
+                        <h4 className="font-bold text-gray-900">Card Payment</h4>
+                        <p className="text-sm text-gray-600">Visa &amp; Mastercard accepted — secured by 3D Secure</p>
+                      </div>
+                    </div>
+                    <div className="bg-purple-100 border border-purple-200 rounded-lg p-3 text-sm text-purple-800">
+                      <FontAwesomeIcon icon={faShield} className="mr-1" />
+                      You will be redirected to a secure Lipila checkout page to enter your card details. After payment you will be brought back here.
+                    </div>
+                  </div>
+                )}
+
                 {paymentMethod === "cash" && (
                   <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200 mb-6">
                     <div className="flex items-center gap-3 mb-4">
@@ -916,22 +1066,36 @@ const Payment = () => {
 
                 <button
                   type="submit"
-                  disabled={processing}
+                  disabled={processing || momoPolling}
                   className={`w-full mt-6 py-4 rounded-lg font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-lg ${
-                    paymentMethod === "cash" 
-                      ? "bg-green-600 text-white hover:bg-green-700" 
+                    paymentMethod === "cash"
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : paymentMethod === "mobile_money"
+                      ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                      : paymentMethod === "card"
+                      ? "bg-purple-600 text-white hover:bg-purple-700"
                       : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
-                  {processing ? (
+                  {processing || momoPolling ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Processing...
+                      {momoPolling ? "Awaiting payment..." : "Processing..."}
                     </>
                   ) : paymentMethod === "cash" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} className="mr-2" />
-                      Confirm Booking - {formatCurrency(calculateTotalCost())}
+                      Confirm Booking — {formatCurrency(calculateTotalCost())}
+                    </>
+                  ) : paymentMethod === "mobile_money" ? (
+                    <>
+                      <FontAwesomeIcon icon={faMobilePhone} className="mr-2" />
+                      Pay with Mobile Money — {formatCurrency(calculateTotalCost())}
+                    </>
+                  ) : paymentMethod === "card" ? (
+                    <>
+                      <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
+                      Pay with Card — {formatCurrency(calculateTotalCost())}
                     </>
                   ) : (
                     <>

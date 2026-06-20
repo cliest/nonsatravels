@@ -36,6 +36,7 @@ enum PaymentMethod {
   bank_transfer
   flutterwave
   cash
+  mobile_money
 }
 
 enum ChatStatus {

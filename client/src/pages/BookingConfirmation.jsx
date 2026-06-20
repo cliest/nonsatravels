@@ -122,6 +122,34 @@ const BookingConfirmation = () => {
         ]
       };
     }
+    if (paymentMethod === "mobile_money") {
+      return {
+        color: "green",
+        icon: faCheckCircle,
+        title: "Mobile Money Payment Confirmed!",
+        message: "Your mobile money payment was received and your booking is confirmed. An invoice has been sent to your email.",
+        steps: [
+          "Booking confirmation and invoice sent to your email",
+          "Save your booking reference number",
+          "Arrive at the hotel after 2:00 PM",
+          "Contact us on WhatsApp if you need assistance"
+        ]
+      };
+    }
+    if (paymentMethod === "card") {
+      return {
+        color: "green",
+        icon: faCheckCircle,
+        title: "Card Payment Confirmed!",
+        message: "Your card payment was successfully processed and your booking is confirmed. An invoice has been sent to your email.",
+        steps: [
+          "Booking confirmation and invoice sent to your email",
+          "Save your booking reference number",
+          "Arrive at the hotel after 2:00 PM",
+          "Contact us on WhatsApp if you need assistance"
+        ]
+      };
+    }
     return {
       color: "green",
       icon: faCheckCircle,
@@ -307,7 +335,7 @@ const BookingConfirmation = () => {
                       <span className="text-sm text-gray-600">Payment Method</span>
                     </div>
                     <span className="font-medium text-gray-900 capitalize">
-                      {paymentMethod === "bank_transfer" ? "Bank Transfer" : paymentMethod === "cash" ? "Pay at Hotel" : paymentMethod}
+                      {paymentMethod === "bank_transfer" ? "Bank Transfer" : paymentMethod === "cash" ? "Pay at Hotel" : paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "card" ? "Card" : paymentMethod}
                     </span>
                   </div>
                 </div>
