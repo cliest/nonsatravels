@@ -117,7 +117,8 @@ const Payment = () => {
       toast.warning("Please enter a valid email address");
       return false;
     }
-    if (!personalInfo.phone || personalInfo.phone.trim().length < 9) {
+    const effectivePhone = personalInfo.phone?.trim() || (paymentMethod === "mobile_money" ? momoPhone?.trim() : "");
+    if (!effectivePhone || effectivePhone.length < 9) {
       toast.warning("Please enter a valid phone number");
       return false;
     }
@@ -309,7 +310,7 @@ const Payment = () => {
           totalPrice: (bookingData.totalPrice + additionalCost) - getDiscount(),
           userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
           userEmail: personalInfo.email,
-          userPhone: personalInfo.phone,
+          userPhone: personalInfo.phone || momoPhone.replace(/\s/g, ""),
           specialRequests: personalInfo.specialRequests || null,
           roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
           phoneNumber: momoPhone.replace(/\s/g, ""),
