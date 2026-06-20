@@ -222,7 +222,7 @@ const Payment = () => {
           clearInterval(interval);
           setMomoPolling(false);
           setProcessing(false);
-          toast.error("Mobile money payment failed. Please try again.");
+          toast.error("Payment was declined. This may be due to insufficient balance, wrong PIN, or the prompt was not accepted. Please check your mobile money balance and try again.");
           return;
         }
       } catch {
@@ -233,7 +233,7 @@ const Payment = () => {
         clearInterval(interval);
         setMomoPolling(false);
         setProcessing(false);
-        toast.warning("Payment is still pending. Check your bookings later or contact support.");
+        toast.warning("No response received from your mobile money. If you accepted the prompt, your booking will be confirmed shortly — check My Bookings. Otherwise, please try again.");
       }
     }, 5000);
   };

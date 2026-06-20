@@ -204,7 +204,7 @@ export const handleWebhook = async (req, res) => {
       where: { id: referenceId },
       data: {
         paymentStatus: isSuccess ? 'completed' : 'failed',
-        status: isSuccess ? 'payment_confirmed' : 'pending_payment',
+        status: isSuccess ? 'payment_confirmed' : 'cancelled',
         ...(isSuccess ? { paymentConfirmedAt: new Date() } : {}),
       },
     });
