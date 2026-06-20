@@ -2,7 +2,6 @@ import prisma from '../lib/prisma.js';
 import { sendEmail } from '../utils/emailService.js';
 import {
   bookingStatusUpdatedEmail,
-  bankDetailsEmail,
   bookingModificationEmail,
 } from '../utils/emailTemplates.js';
 import {
@@ -187,46 +186,19 @@ export const createBooking = async (req, res) => {
       ? [{ filename: `Invoice-${populatedBooking.invoiceNumber}.pdf`, content: invoicePDF }]
       : [];
 
-    if (paymentMethod === 'bank_transfer') {
-      try {
-        const bankDetails = {
-          bankName: 'Stanbic Bank Zambia',
-          accountName: 'Nonsa Travels Ltd',
-          accountNumber: '9200001234567',
-          branchCode: '040001',
-          swiftCode: 'SBICZMLX',
-          additionalInfo: 'Please use your Booking ID as the payment reference',
-        };
-        const emailContent = bankDetailsEmail(populatedBooking, hotel, bankDetails);
-        await sendEmail({ to: userEmail, subject: emailContent.subject, html: emailContent.html, text: emailContent.text, attachments });
-        await prisma.booking.update({ where: { id: booking.id }, data: { bankDetailsSentAt: new Date() } });
-        // Send bank details via WhatsApp if customer provided a number
-        if (populatedBooking.userPhone) {
-          await sendWhatsAppToCustomer(populatedBooking.userPhone, whatsappTemplates.bankDetails(populatedBooking, hotel, bankDetails));
-        }
-      } catch (e) { console.error('Failed to send bank details:', e); }
+    try {
+      const emailContent = enhancedBookingConfirmationEmail(populatedBooking, hotel);
+      await sendEmail({ to: userEmail, subject: emailContent.subject, html: emailContent.html, text: emailContent.text, attachments });
+      if (populatedBooking.userPhone) {
+        await sendWhatsAppToCustomer(populatedBooking.userPhone, whatsappTemplates.cashBooking(populatedBooking, hotel));
+      }
+    } catch (e) { console.error('Failed to send confirmation:', e); }
 
-      try {
-        const adminEmailContent = adminNewBookingNotification(populatedBooking, hotel);
-        await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@nonsatravels.com', subject: adminEmailContent.subject, html: adminEmailContent.html, text: adminEmailContent.text });
-        await sendWhatsAppMessage(`New booking received:\nHotel: ${hotel.name}\nGuest: ${populatedBooking.userName}\nCheck-in: ${new Date(populatedBooking.checkInDate).toLocaleDateString()}\nTotal: $${populatedBooking.totalPrice}`);
-      } catch (e) { console.error('Failed to send admin notification:', e); }
-    } else {
-      try {
-        const emailContent = enhancedBookingConfirmationEmail(populatedBooking, hotel);
-        await sendEmail({ to: userEmail, subject: emailContent.subject, html: emailContent.html, text: emailContent.text, attachments });
-        // Send booking confirmation via WhatsApp
-        if (populatedBooking.userPhone) {
-          await sendWhatsAppToCustomer(populatedBooking.userPhone, whatsappTemplates.cashBooking(populatedBooking, hotel));
-        }
-      } catch (e) { console.error('Failed to send confirmation:', e); }
-
-      try {
-        const adminEmailContent = adminNewBookingNotification(populatedBooking, hotel);
-        await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@nonsatravels.com', subject: adminEmailContent.subject, html: adminEmailContent.html, text: adminEmailContent.text });
-        await sendWhatsAppMessage(`New booking received:\nHotel: ${hotel.name}\nGuest: ${populatedBooking.userName}\nTotal: $${populatedBooking.totalPrice}`);
-      } catch (e) { console.error('Failed to send admin notification:', e); }
-    }
+    try {
+      const adminEmailContent = adminNewBookingNotification(populatedBooking, hotel);
+      await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@nonsatravels.com', subject: adminEmailContent.subject, html: adminEmailContent.html, text: adminEmailContent.text });
+      await sendWhatsAppMessage(`New booking received:\nHotel: ${hotel.name}\nGuest: ${populatedBooking.userName}\nCheck-in: ${new Date(populatedBooking.checkInDate).toLocaleDateString()}\nTotal: $${populatedBooking.totalPrice}`);
+    } catch (e) { console.error('Failed to send admin notification:', e); }
 
     res.status(201).json({ success: true, data: populatedBooking });
   } catch (error) {
@@ -360,48 +332,6 @@ export const deleteBookingPermanently = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
     res.status(500).json({ success: false, message: 'Failed to delete booking', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
-  }
-};
-
-export const sendBankDetails = async (req, res) => {
-  try {
-    const { bankName, accountName, accountNumber, branchCode, swiftCode, additionalInfo } = req.body;
-
-    if (!bankName || !accountName || !accountNumber) {
-      return res.status(400).json({ success: false, message: 'Bank name, account name, and account number are required' });
-    }
-
-    const raw = await prisma.booking.findUnique({ where: { id: req.params.id }, include: bookingInclude });
-    if (!raw) return res.status(404).json({ success: false, message: 'Booking not found' });
-    if (raw.paymentMethod !== 'bank_transfer') {
-      return res.status(400).json({ success: false, message: 'This booking does not use bank transfer payment method' });
-    }
-
-    const bankDetails = { bankName, accountName, accountNumber, branchCode: branchCode || null, swiftCode: swiftCode || null, additionalInfo: additionalInfo || null };
-
-    const updated = await prisma.booking.update({
-      where: { id: req.params.id },
-      data: { bankDetails, bankDetailsSentAt: new Date() },
-      include: bookingInclude,
-    });
-
-    const booking = formatBooking(updated);
-
-    try {
-      const content = bankDetailsEmail(booking, updated.hotel, bankDetails);
-      await sendEmail({ to: booking.userEmail, subject: content.subject, html: content.html, text: content.text });
-      // Also send via WhatsApp if customer has a phone number
-      if (booking.userPhone) {
-        await sendWhatsAppToCustomer(booking.userPhone, whatsappTemplates.bankDetails(booking, updated.hotel, bankDetails));
-      }
-      const whatsappNote = booking.userPhone ? ' and WhatsApp' : '';
-      res.status(200).json({ success: true, message: `Bank details sent via email${whatsappNote}`, data: booking });
-    } catch (emailError) {
-      console.error('Failed to send bank details:', emailError);
-      res.status(500).json({ success: false, message: 'Failed to send bank details', error: emailError.message });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 

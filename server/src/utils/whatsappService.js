@@ -60,30 +60,6 @@ export async function sendWhatsAppToCustomer(phone, message) {
 
 // Pre-built customer message templates
 export const whatsappTemplates = {
-  bankDetails: (booking, hotel, bankDetails) => {
-    const checkIn = new Date(booking.checkInDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    const checkOut = new Date(booking.checkOutDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    return `*Nonsa Travels - Payment Details*
-
-Hi ${booking.userName},
-
-Your booking has been received! Please complete your payment via bank transfer:
-
-*Bank:* ${bankDetails.bankName}
-*Account Name:* ${bankDetails.accountName}
-*Account Number:* ${bankDetails.accountNumber}${bankDetails.branchCode ? `\n*Branch Code:* ${bankDetails.branchCode}` : ''}${bankDetails.swiftCode ? `\n*Swift Code:* ${bankDetails.swiftCode}` : ''}
-*Reference:* ${booking.id}
-
-*Hotel:* ${hotel.name}, ${hotel.city}
-*Check-in:* ${checkIn}
-*Check-out:* ${checkOut}
-*Total Due:* $${booking.totalPrice.toFixed(2)}
-
-After making the transfer, please reply with your proof of payment and we will confirm your booking.
-
-Thank you for choosing Nonsa Travels!`;
-  },
-
   bookingConfirmed: (booking, hotel) => {
     const checkIn = new Date(booking.checkInDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const checkOut = new Date(booking.checkOutDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

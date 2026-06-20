@@ -7,7 +7,6 @@ import {
   cancelBooking,
   deleteBookingPermanently,
   getBookingStats,
-  sendBankDetails,
   modifyBooking,
   generateInvoice,
   sendInvoiceEmail,
@@ -24,7 +23,6 @@ router.get('/stats', optionalAuth, getBookingStats);
 router.get('/:id', verifyAuth, getBooking);
 router.get('/:id/invoice', verifyAuth, generateInvoice);
 router.post('/', bookingLimiter, optionalAuth, validate(bookingSchema.create), createBooking);
-router.post('/:id/send-bank-details', verifyAuth, requireAdmin, sendBankDetails);
 router.post('/:id/send-invoice', verifyAuth, requireAdmin, sendInvoiceEmail);
 router.put('/:id/modify', verifyAuth, modifyBooking);
 router.patch('/:id/status', verifyAuth, requireAdmin, validate(bookingSchema.updateStatus), updateBookingStatus);

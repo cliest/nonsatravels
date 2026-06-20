@@ -61,7 +61,7 @@ export const bookingSchema = {
     specialRequests: Joi.string().allow('', null).max(500),
     roomPreferences: Joi.string().allow('', null).max(500),
     paymentId: Joi.string().allow('', null),
-    paymentMethod: Joi.string().valid('flutterwave', 'bank_transfer', 'cash', 'card', 'paypal').default('bank_transfer'),
+    paymentMethod: Joi.string().valid('flutterwave', 'cash', 'card', 'paypal', 'mobile_money').default('cash'),
     paymentStatus: Joi.string().valid('pending', 'completed', 'failed').default('pending'),
     status: Joi.string().valid('pending_payment', 'payment_confirmed', 'confirmed', 'completed', 'cancelled', 'rejected').default('pending_payment'),
     referralCode: Joi.string().allow('', null),

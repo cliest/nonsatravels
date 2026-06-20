@@ -108,7 +108,7 @@ const seedDatabase = async () => {
         totalPrice: randomHotel.pricePerNight * nights,
         status: Math.random() > 0.1 ? 'completed' : 'confirmed',
         paymentStatus: 'completed',
-        paymentMethod: ['card', 'paypal', 'bank_transfer'][Math.floor(Math.random() * 3)],
+        paymentMethod: ['card', 'mobile_money', 'cash'][Math.floor(Math.random() * 3)],
       });
     }
 

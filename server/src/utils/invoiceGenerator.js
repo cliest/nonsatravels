@@ -299,8 +299,6 @@ export const generateInvoicePDF = async (booking, hotel) => {
       if (booking.status === 'confirmed' && booking.paymentConfirmedAt) {
         paymentStatus = 'PAID';
         statusColor = '#059669';
-      } else if (booking.paymentMethod === 'bank_transfer') {
-        paymentStatus = 'PENDING - Awaiting Bank Transfer';
       } else if (booking.paymentMethod === 'cash') {
         paymentStatus = 'PENDING - Pay at Hotel';
       } else if (booking.status === 'pending') {
@@ -523,8 +521,7 @@ export const generateInvoiceHTML = (booking, hotel) => {
         <tr>
           <td>Payment Status:</td>
           <td><span class="${booking.status === 'confirmed' && booking.paymentConfirmedAt ? 'paid-badge' : 'pending-badge'}">
-            ${booking.status === 'confirmed' && booking.paymentConfirmedAt ? 'PAID' : 
-              booking.paymentMethod === 'bank_transfer' ? 'PENDING - Awaiting Bank Transfer' : 
+            ${booking.status === 'confirmed' && booking.paymentConfirmedAt ? 'PAID' :
               booking.paymentMethod === 'cash' ? 'PENDING - Pay at Hotel' : 'PENDING VERIFICATION'}
           </span></td>
         </tr>

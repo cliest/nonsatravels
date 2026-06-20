@@ -557,7 +557,7 @@ export const paymentConfirmedEmail = (booking, hotel) => {
               <div style="background: #d1fae5; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #10b981;">
                 <h3 style="margin: 0 0 10px 0; color: #047857;">Payment Status: CONFIRMED</h3>
                 <p style="margin: 0; color: #065f46;">Amount Received: <strong>$${booking.totalPrice.toFixed(2)}</strong></p>
-                <p style="margin: 5px 0 0 0; font-size: 13px; color: #047857;">Payment Method: ${booking.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : booking.paymentMethod === 'cash' ? 'Cash Payment' : booking.paymentMethod?.toUpperCase()}</p>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #047857;">Payment Method: ${booking.paymentMethod === 'cash' ? 'Cash Payment' : booking.paymentMethod === 'mobile_money' ? 'Mobile Money' : booking.paymentMethod === 'card' ? 'Card' : booking.paymentMethod?.toUpperCase()}</p>
               </div>
               
               <div class="booking-details">
