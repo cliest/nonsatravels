@@ -166,6 +166,14 @@ export const statsAPI = {
 export const contactAPI = {
   sendMessage: (data) => api.post('/contact/send', data),
   subscribeNewsletter: (email) => api.post('/contact/newsletter', { email }),
+  unsubscribe: (email) => api.post('/contact/newsletter/unsubscribe', { email }),
+};
+
+// Newsletter Admin API
+export const newsletterAPI = {
+  getSubscribers: (active) => api.get('/contact/newsletter/subscribers', { params: active !== undefined ? { active } : {} }),
+  deleteSubscriber: (id) => api.delete(`/contact/newsletter/subscribers/${id}`),
+  sendNewsletter: (data) => api.post('/contact/newsletter/send', data),
 };
 
 // Referral API

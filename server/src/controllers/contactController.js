@@ -1,4 +1,6 @@
+import prisma from '../lib/prisma.js';
 import { sendEmail } from '../utils/emailService.js';
+import { emailHeader, emailFooter, emailStyles } from '../utils/emailTemplates.js';
 
 export const sendContactEmail = async (req, res) => {
   try {
@@ -17,39 +19,26 @@ export const sendContactEmail = async (req, res) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <style>
-            body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .message-box { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 4px; }
-            .contact-info { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
-            .info-row { padding: 8px 0; border-bottom: 1px solid #eee; }
-            .label { font-weight: bold; color: #667eea; display: inline-block; width: 100px; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${emailStyles}</style>
         </head>
         <body>
           <div class="container">
-            <div class="header">
-              <h1>New Contact Form Submission</h1>
-            </div>
+            ${emailHeader('New Contact Form Submission', 'Someone has reached out via the website', '#667eea 0%, #764ba2 100%')}
             <div class="content">
-              <div class="contact-info">
-                <div class="info-row"><span class="label">From:</span> <span>${name}</span></div>
-                <div class="info-row"><span class="label">Email:</span> <span><a href="mailto:${email}">${email}</a></span></div>
-                <div class="info-row" style="border-bottom: none;"><span class="label">Subject:</span> <span>${subject}</span></div>
+              <div class="booking-details">
+                <div class="detail-row"><span class="detail-label">From:</span><span>${name}</span></div>
+                <div class="detail-row"><span class="detail-label">Email:</span><span><a href="mailto:${email}">${email}</a></span></div>
+                <div class="detail-row"><span class="detail-label">Subject:</span><span>${subject}</span></div>
               </div>
-              <div class="message-box">
-                <h3>Message:</h3>
-                <p style="white-space: pre-wrap;">${message}</p>
+              <div class="info-box" style="margin-top: 20px;">
+                <p style="margin: 0 0 8px 0; font-weight: 600;">Message:</p>
+                <p style="white-space: pre-wrap; margin: 0;">${message}</p>
               </div>
               <p style="margin-top: 20px; color: #666; font-size: 14px;"><strong>Note:</strong> Please respond to this inquiry at your earliest convenience.</p>
             </div>
-            <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p>
-              <p>This is an automated notification from your contact form.</p>
-            </div>
+            ${emailFooter()}
           </div>
         </body>
       </html>
@@ -59,45 +48,24 @@ export const sendContactEmail = async (req, res) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <style>
-            body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${emailStyles}</style>
         </head>
         <body>
           <div class="container">
-            <div class="header">
-              <h1>We Received Your Message</h1>
-            </div>
+            ${emailHeader('We Received Your Message', 'Our team will get back to you within 24 hours', '#667eea 0%, #764ba2 100%')}
             <div class="content">
               <p>Dear ${name},</p>
               <p>Thank you for contacting Nonsa Travels. We have received your message and our support team will get back to you within 24 hours.</p>
-              <div class="message-box">
-                <h3>Your Message Summary:</h3>
-                <p><strong>Subject:</strong> ${subject}</p>
-                <p style="white-space: pre-wrap;">${message}</p>
+              <div class="info-box">
+                <p style="font-weight: 600; margin: 0 0 8px 0;">Your Message Summary:</p>
+                <p style="margin: 0 0 6px 0;"><strong>Subject:</strong> ${subject}</p>
+                <p style="white-space: pre-wrap; margin: 0;">${message}</p>
               </div>
-              <p>In the meantime, you can:</p>
-              <ul>
-                <li>Browse our <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/faq">Frequently Asked Questions</a></li>
-                <li>Explore our <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/hotels">Hotel Collection</a></li>
-                <li>Check your <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/my-bookings">Bookings</a></li>
-              </ul>
               <p style="margin-top: 30px;">Best regards,<br><strong>Nonsa Travels Support Team</strong></p>
-              <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                <strong>Contact Information:</strong><br>
-                Email: support@nonsatravels.com<br>
-                Phone: +260 970 462 777<br>
-                Working Hours: Mon-Fri 8AM-6PM, Sat 9AM-4PM
-              </p>
             </div>
-            <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p>
-            </div>
+            ${emailFooter()}
           </div>
         </body>
       </html>
@@ -135,42 +103,44 @@ export const subscribeNewsletter = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid email address' });
     }
 
+    // Upsert — re-activates if previously unsubscribed
+    const subscriber = await prisma.newsletterSubscriber.upsert({
+      where: { email },
+      update: { isActive: true },
+      create: { email, source: 'website' },
+    });
+
+    if (!subscriber.isActive) {
+      return res.status(200).json({ success: true, message: 'Successfully re-subscribed to newsletter!' });
+    }
+
     const welcomeEmailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
-          <style>
-            body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .benefits { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .benefit-item { padding: 10px 0; border-bottom: 1px solid #eee; }
-            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${emailStyles}</style>
         </head>
         <body>
           <div class="container">
-            <div class="header">
-              <h1>Welcome to Nonsa Travels!</h1>
-            </div>
+            ${emailHeader('Welcome to Nonsa Travels!', "You're now subscribed to our newsletter", '#667eea 0%, #764ba2 100%')}
             <div class="content">
               <p>Thank you for subscribing to our newsletter!</p>
               <p>You'll now receive exclusive updates about:</p>
-              <div class="benefits">
-                <div class="benefit-item">Special hotel deals and discounts</div>
-                <div class="benefit-item">New destination launches</div>
-                <div class="benefit-item">Travel tips and guides</div>
-                <div class="benefit-item">Exclusive offers for subscribers</div>
-                <div class="benefit-item" style="border-bottom: none;">Industry news and updates</div>
+              <div class="info-box">
+                <ul>
+                  <li>Special hotel deals and discounts</li>
+                  <li>New destination launches</li>
+                  <li>Travel tips and guides</li>
+                  <li>Exclusive offers for subscribers</li>
+                  <li>Industry news and updates</li>
+                </ul>
               </div>
               <p>Start exploring our collection of amazing hotels and destinations!</p>
               <p style="margin-top: 30px;">Happy Travels,<br><strong>The Nonsa Travels Team</strong></p>
             </div>
-            <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p>
-              <p><a href="#">Unsubscribe</a> from this mailing list.</p>
-            </div>
+            ${emailFooter()}
           </div>
         </body>
       </html>
@@ -183,16 +153,92 @@ export const subscribeNewsletter = async (req, res) => {
       text: `Thank you for subscribing to Nonsa Travels newsletter!\n\nYou'll receive exclusive updates about special deals, new destinations, travel tips, and more.\n\nHappy Travels,\nThe Nonsa Travels Team`,
     });
 
-    await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'support@nonsatravels.com',
-      subject: 'New Newsletter Subscription',
-      html: `<p>New subscriber: <strong>${email}</strong></p><p>Subscribed on: ${new Date().toLocaleString()}</p>`,
-      text: `New subscriber: ${email}\nSubscribed on: ${new Date().toLocaleString()}`,
-    });
-
     res.status(200).json({ success: true, message: 'Successfully subscribed to newsletter! Check your email for confirmation.' });
   } catch (error) {
     console.error('Error subscribing to newsletter:', error);
     res.status(500).json({ success: false, message: 'Failed to subscribe. Please try again later.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
+// ─── Admin endpoints ─────────────────────────────────────────────────────────
+
+export const getSubscribers = async (req, res) => {
+  try {
+    const { active } = req.query;
+    const where = active !== undefined ? { isActive: active === 'true' } : {};
+    const subscribers = await prisma.newsletterSubscriber.findMany({
+      where,
+      orderBy: { subscribedAt: 'desc' },
+    });
+    res.status(200).json({ success: true, data: subscribers, total: subscribers.length });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch subscribers', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
+  }
+};
+
+export const deleteSubscriber = async (req, res) => {
+  try {
+    await prisma.newsletterSubscriber.delete({ where: { id: req.params.id } });
+    res.status(200).json({ success: true, message: 'Subscriber removed' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to remove subscriber' });
+  }
+};
+
+export const unsubscribeNewsletter = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
+    await prisma.newsletterSubscriber.updateMany({ where: { email }, data: { isActive: false } });
+    res.status(200).json({ success: true, message: 'Successfully unsubscribed' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to unsubscribe' });
+  }
+};
+
+export const sendNewsletter = async (req, res) => {
+  try {
+    const { subject, html, text, recipientIds } = req.body;
+
+    if (!subject || !html) {
+      return res.status(400).json({ success: false, message: 'Subject and HTML body are required' });
+    }
+
+    // Get active subscribers (or specific ones if recipientIds provided)
+    const where = recipientIds?.length
+      ? { id: { in: recipientIds }, isActive: true }
+      : { isActive: true };
+
+    const subscribers = await prisma.newsletterSubscriber.findMany({ where, select: { email: true } });
+
+    if (!subscribers.length) {
+      return res.status(400).json({ success: false, message: 'No active subscribers found' });
+    }
+
+    const emails = subscribers.map(s => s.email);
+
+    // Send in batches of 50 to avoid rate limits
+    const BATCH_SIZE = 50;
+    let sent = 0;
+    let failed = 0;
+
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+      const batch = emails.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(to => sendEmail({ to, subject, html, text: text || subject, tags: ['newsletter'] }))
+      );
+      results.forEach(r => r.status === 'fulfilled' && !r.value.failed ? sent++ : failed++);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Newsletter sent to ${sent} subscriber${sent !== 1 ? 's' : ''}${failed ? ` (${failed} failed)` : ''}`,
+      sent,
+      failed,
+      total: emails.length,
+    });
+  } catch (error) {
+    console.error('Error sending newsletter:', error);
+    res.status(500).json({ success: false, message: 'Failed to send newsletter', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };

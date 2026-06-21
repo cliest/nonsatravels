@@ -425,6 +425,14 @@ model BlogPost {
   author User @relation(fields: [authorId], references: [id])
 }
 
+model NewsletterSubscriber {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  subscribedAt DateTime  @default(now())
+  isActive     Boolean   @default(true)
+  source       String?
+}
+
 model CannedResponse {
   id         String         @id @default(cuid())
   title      String

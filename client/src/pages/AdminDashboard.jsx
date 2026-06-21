@@ -34,11 +34,13 @@ import {
   faComments,
   faChartBar,
   faGlobe,
+  faNewspaper,
+  faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -174,6 +176,14 @@ const AdminDashboard = () => {
     isFirstBookingOnly: false,
     isActive: true,
   });
+
+  // Newsletter Management
+  const [subscribers, setSubscribers] = useState([]);
+  const [subscribersLoading, setSubscribersLoading] = useState(false);
+  const [subscriberFilter, setSubscriberFilter] = useState("all");
+  const [showSendNewsletterModal, setShowSendNewsletterModal] = useState(false);
+  const [newsletterForm, setNewsletterForm] = useState({ subject: "", body: "" });
+  const [sendingNewsletter, setSendingNewsletter] = useState(false);
 
   // Available amenities
   const availableAmenities = [
@@ -512,6 +522,62 @@ const AdminDashboard = () => {
       isActive: promo.isActive,
     });
     setShowPromoModal(true);
+  };
+
+  // Newsletter Handlers
+  const fetchSubscribers = async (filter = subscriberFilter) => {
+    setSubscribersLoading(true);
+    try {
+      const active = filter === "active" ? true : filter === "inactive" ? false : undefined;
+      const res = await newsletterAPI.getSubscribers(active);
+      if (res.data.success) setSubscribers(res.data.data);
+    } catch {
+      toast.error("Failed to load subscribers");
+    } finally {
+      setSubscribersLoading(false);
+    }
+  };
+
+  const handleDeleteSubscriber = async (id) => {
+    if (!window.confirm("Remove this subscriber permanently?")) return;
+    try {
+      await newsletterAPI.deleteSubscriber(id);
+      toast.success("Subscriber removed");
+      fetchSubscribers();
+    } catch {
+      toast.error("Failed to remove subscriber");
+    }
+  };
+
+  const handleSendNewsletter = async (e) => {
+    e.preventDefault();
+    if (!newsletterForm.subject || !newsletterForm.body) {
+      toast.error("Subject and body are required");
+      return;
+    }
+    setSendingNewsletter(true);
+    try {
+      const activeCount = subscribers.filter(s => s.isActive).length;
+      if (!window.confirm(`Send this newsletter to ${activeCount} active subscriber${activeCount !== 1 ? 's' : ''}?`)) {
+        setSendingNewsletter(false);
+        return;
+      }
+      const htmlBody = newsletterForm.body
+        .split('\n\n')
+        .map(para => `<p style="margin: 0 0 16px 0; color: #475569; font-size: 15px; line-height: 1.7;">${para.replace(/\n/g, '<br/>')}</p>`)
+        .join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 20px;"><div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);"><div style="background: linear-gradient(135deg, #2b3990 0%, #1e2a6e 100%); padding: 40px 30px; text-align: center;"><h1 style="margin: 0; color: white; font-size: 24px;">${newsletterForm.subject}</h1></div><div style="padding: 32px 30px;">${htmlBody}</div><div style="background: #f8fafc; padding: 24px 30px; text-align: center; border-top: 1px solid #e2e8f0;"><p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 12px;">© ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p><p style="margin: 0; font-size: 12px; color: #94a3b8;">Kwacha Street, Chingola, Zambia | +260 970 462 777</p></div></div></body></html>`;
+      const res = await newsletterAPI.sendNewsletter({ subject: newsletterForm.subject, html, text: newsletterForm.body });
+      if (res.data.success) {
+        toast.success(res.data.message);
+        setShowSendNewsletterModal(false);
+        setNewsletterForm({ subject: "", body: "" });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send newsletter");
+    } finally {
+      setSendingNewsletter(false);
+    }
   };
 
   // Calculate dashboard stats
@@ -1259,6 +1325,7 @@ const AdminDashboard = () => {
             <SidebarNavItem icon={faStar} label="Testimonials" active={activeTab === "testimonials"} onClick={() => { setActiveTab("testimonials"); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faBlog} label="Blog" active={activeTab === "blog"} onClick={() => { setActiveTab("blog"); if (blogPosts.length === 0) fetchBlogPosts(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faTag} label="Promo Codes" active={activeTab === "promos"} onClick={() => { setActiveTab("promos"); if (promoCodes.length === 0) fetchPromoCodes(); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faNewspaper} label="Newsletter" active={activeTab === "newsletter"} onClick={() => { setActiveTab("newsletter"); if (subscribers.length === 0) fetchSubscribers(); setSidebarOpen(false); }} />
 
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Community</p>
             <SidebarNavItem icon={faComments} label="Chat Support" active={activeTab === "chat"} onClick={() => { setActiveTab("chat"); setSidebarOpen(false); }} />
@@ -1304,6 +1371,7 @@ const AdminDashboard = () => {
                activeTab === "chat" ? "Chat Support" :
                activeTab === "users" ? "Users" :
                activeTab === "blog" ? "Blog Posts" :
+               activeTab === "newsletter" ? "Newsletter" :
                "Promo Codes"}
             </h1>
           </div>
@@ -2405,6 +2473,93 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {/* Newsletter Tab */}
+            {activeTab === "newsletter" && (
+              <div>
+                {/* Stats + actions header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Newsletter</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {subscribers.filter(s => s.isActive).length} active &nbsp;·&nbsp; {subscribers.length} total
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={subscriberFilter}
+                      onChange={(e) => { setSubscriberFilter(e.target.value); fetchSubscribers(e.target.value); }}
+                      className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                    >
+                      <option value="all">All</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Unsubscribed</option>
+                    </select>
+                    <button
+                      onClick={() => setShowSendNewsletterModal(true)}
+                      disabled={subscribers.filter(s => s.isActive).length === 0}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <FontAwesomeIcon icon={faPaperPlane} />
+                      Send Newsletter
+                    </button>
+                  </div>
+                </div>
+
+                {subscribersLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : subscribers.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <FontAwesomeIcon icon={faNewspaper} className="text-5xl mb-3 text-gray-200" />
+                    <p className="font-medium">No subscribers yet</p>
+                    <p className="text-sm mt-1">Subscribers will appear here once people sign up from the website.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-500 border-b border-gray-200">
+                          <th className="pb-3 font-medium">Email</th>
+                          <th className="pb-3 font-medium">Subscribed</th>
+                          <th className="pb-3 font-medium">Source</th>
+                          <th className="pb-3 font-medium">Status</th>
+                          <th className="pb-3 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {subscribers.map((sub) => (
+                          <tr key={sub.id} className="hover:bg-gray-50">
+                            <td className="py-3 pr-4 font-medium text-gray-900">{sub.email}</td>
+                            <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">
+                              {new Date(sub.subscribedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="py-3 pr-4 text-gray-500 capitalize">{sub.source || '—'}</td>
+                            <td className="py-3 pr-4">
+                              {sub.isActive ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Unsubscribed</span>
+                              )}
+                            </td>
+                            <td className="py-3">
+                              <button
+                                onClick={() => handleDeleteSubscriber(sub.id)}
+                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Remove subscriber"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Promo Codes Tab */}
             {activeTab === "promos" && (
               <div>
@@ -2522,6 +2677,67 @@ const AdminDashboard = () => {
       </div>
 
     {/* ── Modals (fixed, position-independent) ── */}
+
+        {/* Send Newsletter Modal */}
+        {showSendNewsletterModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FontAwesomeIcon icon={faPaperPlane} className="text-primary" />
+                  Send Newsletter
+                </h2>
+                <button onClick={() => setShowSendNewsletterModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+              <form onSubmit={handleSendNewsletter} className="p-6 space-y-5">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  Will be sent to <strong>{subscribers.filter(s => s.isActive).length}</strong> active subscriber{subscribers.filter(s => s.isActive).length !== 1 ? 's' : ''}.
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                  <input
+                    required
+                    type="text"
+                    value={newsletterForm.subject}
+                    onChange={(e) => setNewsletterForm({ ...newsletterForm, subject: e.target.value })}
+                    placeholder="e.g. Exclusive Deals This Week!"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Body *</label>
+                  <p className="text-xs text-gray-500 mb-2">Plain text. Separate paragraphs with a blank line — they'll render correctly in the email.</p>
+                  <textarea
+                    required
+                    rows={12}
+                    value={newsletterForm.body}
+                    onChange={(e) => setNewsletterForm({ ...newsletterForm, body: e.target.value })}
+                    placeholder={"Dear Subscriber,\n\nWe have some exciting news to share...\n\nBest regards,\nNonsa Travels Team"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y font-mono text-sm"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setShowSendNewsletterModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingNewsletter}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors disabled:opacity-60"
+                  >
+                    {sendingNewsletter ? (
+                      <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Sending...</>
+                    ) : (
+                      <><FontAwesomeIcon icon={faPaperPlane} /> Send Now</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Add Hotel Modal */}
         {showAddHotelModal && (
