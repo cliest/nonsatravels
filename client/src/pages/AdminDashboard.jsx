@@ -31,6 +31,9 @@ import {
   faToggleOn,
   faToggleOff,
   faPercent,
+  faComments,
+  faChartBar,
+  faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
@@ -58,6 +61,7 @@ import {
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showAddHotelModal, setShowAddHotelModal] = useState(false);
@@ -1221,143 +1225,119 @@ const AdminDashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-primary hover:text-accent transition-colors mb-4 font-medium"
-          >
-            <FontAwesomeIcon icon={faArrowLeft} />
-            <span>Back to Home</span>
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Welcome back! Here's what's happening with your hotels today.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-100 flex">
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={faCalendarCheck}
-            title="Total Bookings"
-            value={stats.totalBookings}
-            color="blue"
-          />
-          <StatCard
-            icon={faDollarSign}
-            title="Total Revenue"
-            value={`$${stats.totalRevenue}`}
-            color="green"
-          />
-          <StatCard
-            icon={faHotel}
-            title="Total Hotels"
-            value={stats.totalHotels}
-            color="purple"
-          />
-          <StatCard
-            icon={faUsers}
-            title="Active Guests"
-            value={stats.activeGuests}
-            color="orange"
-          />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <QuickStat
-            label="Pending Bookings"
-            value={stats.pendingBookings}
-            icon={faClock}
-            color="yellow"
-          />
-          <QuickStat
-            label="Completed Bookings"
-            value={stats.completedBookings}
-            icon={faCheckCircle}
-            color="green"
-          />
-          <QuickStat
-            label="Cancelled Bookings"
-            value={stats.cancelledBookings}
-            icon={faTimesCircle}
-            color="red"
-          />
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-md mb-6">
-          <div className="border-b border-gray-200">
-            <div className="flex overflow-x-auto">
-              <TabButton
-                active={activeTab === "overview"}
-                onClick={() => setActiveTab("overview")}
-                label="Overview"
-              />
-              <TabButton
-                active={activeTab === "bookings"}
-                onClick={() => setActiveTab("bookings")}
-                label="Bookings"
-              />
-              <TabButton
-                active={activeTab === "hotels"}
-                onClick={() => setActiveTab("hotels")}
-                label="Hotels"
-              />
-              <TabButton
-                active={activeTab === "analytics"}
-                onClick={() => setActiveTab("analytics")}
-                label="Analytics"
-              />
-              <TabButton
-                active={activeTab === "homepage"}
-                onClick={() => setActiveTab("homepage")}
-                label="Homepage"
-              />
-              <TabButton
-                active={activeTab === "testimonials"}
-                onClick={() => setActiveTab("testimonials")}
-                label="Testimonials"
-              />
-              <TabButton
-                active={activeTab === "chat"}
-                onClick={() => setActiveTab("chat")}
-                label="Chat Support"
-              />
-              <TabButton
-                active={activeTab === "users"}
-                onClick={() => {
-                  setActiveTab("users");
-                  if (users.length === 0) fetchUsers();
-                }}
-                label="Users"
-              />
-              <TabButton
-                active={activeTab === "blog"}
-                onClick={() => {
-                  setActiveTab("blog");
-                  if (blogPosts.length === 0) fetchBlogPosts();
-                }}
-                label="Blog"
-              />
-              <TabButton
-                active={activeTab === "promos"}
-                onClick={() => {
-                  setActiveTab("promos");
-                  if (promoCodes.length === 0) fetchPromoCodes();
-                }}
-                label="Promo Codes"
-              />
+      {/* ── Sidebar ── */}
+      <aside className={`fixed top-0 left-0 h-full w-64 bg-[#0f172a] text-white z-50 flex flex-col transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+        {/* Brand */}
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+              <FontAwesomeIcon icon={faHotel} className="text-white" />
             </div>
-          </div>
+            <div className="min-w-0">
+              <div className="font-bold text-white text-sm leading-tight truncate">Nonsa Travels</div>
+              <div className="text-[10px] text-white/40 leading-tight">Admin Panel</div>
+            </div>
+          </Link>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/50 hover:text-white transition-colors ml-2 flex-shrink-0">
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
 
-          <div className="p-6">
-            {/* Overview Tab */}
+        {/* Nav */}
+        <nav className="flex-1 py-3 overflow-y-auto">
+          <div className="px-3 space-y-0.5">
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-2 pb-1">Main</p>
+            <SidebarNavItem icon={faHome} label="Overview" active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faCalendarCheck} label="Bookings" active={activeTab === "bookings"} onClick={() => { setActiveTab("bookings"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faHotel} label="Hotels" active={activeTab === "hotels"} onClick={() => { setActiveTab("hotels"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faChartBar} label="Analytics" active={activeTab === "analytics"} onClick={() => { setActiveTab("analytics"); setSidebarOpen(false); }} />
+
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Content</p>
+            <SidebarNavItem icon={faGlobe} label="Homepage" active={activeTab === "homepage"} onClick={() => { setActiveTab("homepage"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faStar} label="Testimonials" active={activeTab === "testimonials"} onClick={() => { setActiveTab("testimonials"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faBlog} label="Blog" active={activeTab === "blog"} onClick={() => { setActiveTab("blog"); if (blogPosts.length === 0) fetchBlogPosts(); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faTag} label="Promo Codes" active={activeTab === "promos"} onClick={() => { setActiveTab("promos"); if (promoCodes.length === 0) fetchPromoCodes(); setSidebarOpen(false); }} />
+
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Community</p>
+            <SidebarNavItem icon={faComments} label="Chat Support" active={activeTab === "chat"} onClick={() => { setActiveTab("chat"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faUsers} label="Users" active={activeTab === "users"} onClick={() => { setActiveTab("users"); if (users.length === 0) fetchUsers(); setSidebarOpen(false); }} />
+          </div>
+        </nav>
+
+        {/* Sidebar footer */}
+        <div className="px-5 py-4 border-t border-white/10">
+          <Link to="/" className="flex items-center gap-2.5 text-white/50 hover:text-white text-sm transition-colors">
+            <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
+            <span>Back to Site</span>
+          </Link>
+        </div>
+      </aside>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* ── Main area ── */}
+      <div className="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+
+        {/* Top bar */}
+        <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-3.5 flex items-center gap-3 sticky top-0 z-30">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors -ml-1"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold text-gray-900 truncate">
+              {activeTab === "overview" ? "Dashboard Overview" :
+               activeTab === "bookings" ? "Bookings" :
+               activeTab === "hotels" ? "Hotels" :
+               activeTab === "analytics" ? "Analytics" :
+               activeTab === "homepage" ? "Homepage Content" :
+               activeTab === "testimonials" ? "Testimonials" :
+               activeTab === "chat" ? "Chat Support" :
+               activeTab === "users" ? "Users" :
+               activeTab === "blog" ? "Blog Posts" :
+               "Promo Codes"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full flex-shrink-0">
+            <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+              <FontAwesomeIcon icon={faUser} className="text-white text-[10px]" />
+            </div>
+            <span className="hidden sm:inline font-medium">Admin</span>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+
+          {/* Stats cards — Overview only */}
+          {activeTab === "overview" && (
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <StatCard icon={faCalendarCheck} title="Total Bookings" value={stats.totalBookings} color="blue" />
+                <StatCard icon={faDollarSign} title="Total Revenue" value={`$${stats.totalRevenue}`} color="green" />
+                <StatCard icon={faHotel} title="Total Hotels" value={stats.totalHotels} color="purple" />
+                <StatCard icon={faUsers} title="Active Guests" value={stats.activeGuests} color="orange" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <QuickStat label="Pending Bookings" value={stats.pendingBookings} icon={faClock} color="yellow" />
+                <QuickStat label="Completed Bookings" value={stats.completedBookings} icon={faCheckCircle} color="green" />
+                <QuickStat label="Cancelled Bookings" value={stats.cancelledBookings} icon={faTimesCircle} color="red" />
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6">
+              {/* Overview Tab */}
             {activeTab === "overview" && (
               <div className="space-y-6">
                 <div>
@@ -2536,8 +2516,12 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+            </div>
           </div>
-        </div>
+        </main>
+      </div>
+
+    {/* ── Modals (fixed, position-independent) ── */}
 
         {/* Add Hotel Modal */}
         {showAddHotelModal && (
@@ -3275,7 +3259,6 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };
@@ -3682,7 +3665,7 @@ QuickStat.propTypes = {
   color: PropTypes.string.isRequired,
 };
 
-// Tab Button Component
+// Tab Button Component (kept for reference, no longer used in main nav)
 const TabButton = ({ active, onClick, label }) => {
   return (
     <button
@@ -3702,6 +3685,28 @@ TabButton.propTypes = {
   active: PropTypes.bool.isRequired,
   onClick: PropTypes.func.isRequired,
   label: PropTypes.string.isRequired,
+};
+
+// Sidebar Navigation Item
+const SidebarNavItem = ({ icon, label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+      active
+        ? "bg-primary text-white shadow-sm"
+        : "text-white/60 hover:text-white hover:bg-white/10"
+    }`}
+  >
+    <FontAwesomeIcon icon={icon} className={`w-4 h-4 flex-shrink-0 ${active ? "text-white" : "text-white/50"}`} />
+    <span className="truncate">{label}</span>
+  </button>
+);
+
+SidebarNavItem.propTypes = {
+  icon: PropTypes.object.isRequired,
+  label: PropTypes.string.isRequired,
+  active: PropTypes.bool.isRequired,
+  onClick: PropTypes.func.isRequired,
 };
 
 // Activity Item Component
