@@ -1,25 +1,61 @@
 import prisma from '../lib/prisma.js';
 import { initiateMoMoCollection, initiateCardCollection, checkCollectionStatus } from '../services/lipilaService.js';
+import { sendEmail } from '../utils/emailService.js';
+import { paymentConfirmedEmail, adminNewBookingNotification } from '../utils/enhancedEmailTemplates.js';
+import { sendWhatsAppMessage, sendWhatsAppToCustomer, whatsappTemplates } from '../utils/whatsappService.js';
+import { generateInvoiceNumber, generateInvoicePDF } from '../utils/invoiceGenerator.js';
+import { checkAvailability, reserveRooms } from '../utils/availabilityManager.js';
+import { calculateDynamicPrice } from '../utils/dynamicPricing.js';
 
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
 const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
 const WEBHOOK_URL = `${SERVER_URL}/api/payments/webhook`;
 
-const buildBookingPayload = (body) => ({
-  hotelId: body.hotelId,
-  checkInDate: new Date(body.checkInDate),
-  checkOutDate: new Date(body.checkOutDate),
-  guests: body.guests,
-  totalPrice: body.totalPrice,
-  userName: body.userName,
-  userEmail: body.userEmail,
-  userPhone: body.userPhone || null,
-  specialRequests: body.specialRequests || null,
-  roomPreferences: body.roomPreferences || null,
-  paymentStatus: 'pending',
-  status: 'pending_payment',
-  ...(body.userId ? { userId: body.userId } : {}),
-});
+// Shared setup: validate hotel, check availability, calculate server-side price, reserve, create booking
+const createLipilaBooking = async (body, paymentMethod) => {
+  const { hotelId, checkInDate, checkOutDate, guests, userId } = body;
+
+  const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+  if (!hotel) throw Object.assign(new Error('Hotel not found'), { statusCode: 404 });
+
+  const availability = await checkAvailability(hotelId, checkInDate, checkOutDate, 1);
+  if (!availability.available) {
+    throw Object.assign(new Error('Sorry, no rooms available for the selected dates.'), { statusCode: 400 });
+  }
+
+  const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate);
+  const finalPrice = pricing.totalPrice || body.totalPrice;
+
+  if (!finalPrice || finalPrice <= 0) {
+    throw Object.assign(new Error('Unable to calculate booking price.'), { statusCode: 400 });
+  }
+
+  await reserveRooms(hotelId, checkInDate, checkOutDate, 1);
+
+  const booking = await prisma.booking.create({
+    data: {
+      hotelId,
+      checkInDate: new Date(checkInDate),
+      checkOutDate: new Date(checkOutDate),
+      guests: guests || 1,
+      totalPrice: finalPrice,
+      pricePerNight: pricing.pricePerNight,
+      pricingDetails: pricing.breakdown,
+      userName: body.userName,
+      userEmail: body.userEmail,
+      userPhone: body.userPhone || null,
+      specialRequests: body.specialRequests || null,
+      roomPreferences: body.roomPreferences || null,
+      paymentMethod,
+      paymentStatus: 'pending',
+      status: 'pending_payment',
+      ...(userId ? { userId } : {}),
+    },
+    include: { hotel: true },
+  });
+
+  return { booking, hotel, finalPrice };
+};
 
 export const initiateMoMo = async (req, res) => {
   const { phoneNumber, ...bookingData } = req.body;
@@ -28,25 +64,20 @@ export const initiateMoMo = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Phone number is required for mobile money payment' });
   }
 
-  let booking;
+  let booking, hotel, finalPrice;
   try {
-    booking = await prisma.booking.create({
-      data: {
-        ...buildBookingPayload(bookingData),
-        paymentMethod: 'mobile_money',
-      },
-    });
+    ({ booking, hotel, finalPrice } = await createLipilaBooking(bookingData, 'mobile_money'));
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to create booking', error: err.message });
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
 
   try {
     const lipilaRes = await initiateMoMoCollection({
       referenceId: booking.id,
-      amount: booking.totalPrice,
-      narration: `Hotel booking - ${bookingData.hotelName || booking.hotelId}`,
+      amount: finalPrice,
+      narration: `Hotel booking - ${hotel.name}`,
       accountNumber: phoneNumber,
-      currency: 'ZMW',
+      currency: 'USD',
       email: booking.userEmail,
       callbackUrl: WEBHOOK_URL,
     });
@@ -81,16 +112,11 @@ export const initiateCard = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Customer info is required for card payment' });
   }
 
-  let booking;
+  let booking, hotel, finalPrice;
   try {
-    booking = await prisma.booking.create({
-      data: {
-        ...buildBookingPayload(bookingData),
-        paymentMethod: 'card',
-      },
-    });
+    ({ booking, hotel, finalPrice } = await createLipilaBooking(bookingData, 'card'));
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to create booking', error: err.message });
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
 
   try {
@@ -107,10 +133,10 @@ export const initiateCard = async (req, res) => {
       },
       collectionRequest: {
         referenceId: booking.id,
-        amount: booking.totalPrice,
-        narration: `Hotel booking - ${bookingData.hotelName || booking.hotelId}`,
+        amount: finalPrice,
+        narration: `Hotel booking - ${hotel.name}`,
         accountNumber: booking.userEmail,
-        currency: 'ZMW',
+        currency: 'USD',
         backUrl: `${CLIENT_URL}/payment-callback?status=failed&referenceId=${booking.id}`,
         redirectUrl: `${CLIENT_URL}/payment-callback?status=success&referenceId=${booking.id}`,
       },
@@ -149,7 +175,7 @@ export const checkStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    // If webhook already confirmed the payment, report success immediately
+    // Webhook already confirmed — no need to poll Lipila
     if (booking.status === 'payment_confirmed') {
       return res.status(200).json({
         success: true,
@@ -160,14 +186,24 @@ export const checkStatus = async (req, res) => {
       });
     }
 
-    // Try Lipila check-status using our referenceId (the booking ID we sent at initiation)
+    // Booking was cancelled (payment failed via webhook)
+    if (booking.status === 'cancelled' && booking.paymentStatus === 'failed') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: 'Failed',
+          booking: { id: booking.id, status: booking.status, paymentStatus: booking.paymentStatus },
+        },
+      });
+    }
+
+    // Try Lipila status check
     let lipilaStatus = 'Pending';
     try {
       const lipilaData = await checkCollectionStatus(referenceId);
       lipilaStatus = lipilaData?.status || 'Pending';
       console.log(`[checkStatus] ref=${referenceId} lipilaStatus=${lipilaStatus}`);
     } catch (lipilaErr) {
-      // Lipila check failed — keep polling; webhook will confirm when payment completes
       console.log(`[checkStatus] Lipila unreachable (${lipilaErr.message}), relying on webhook`);
     }
 
@@ -185,30 +221,81 @@ export const checkStatus = async (req, res) => {
 };
 
 export const handleWebhook = async (req, res) => {
-  const { referenceId, status, identifier, paymentType, amount } = req.body;
+  const { referenceId, status } = req.body;
 
+  // Acknowledge immediately so Lipila doesn't retry
   res.status(200).json({ received: true });
 
   if (!referenceId) return;
 
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: referenceId } });
+    const booking = await prisma.booking.findUnique({
+      where: { id: referenceId },
+      include: { hotel: true },
+    });
     if (!booking) return;
+
+    // Idempotency: skip if already in a final state
+    if (booking.status === 'payment_confirmed' || booking.status === 'cancelled') return;
 
     const isSuccess = status === 'Successful';
     const isFailed = status === 'Failed';
-
     if (!isSuccess && !isFailed) return;
 
-    await prisma.booking.update({
+    const updated = await prisma.booking.update({
       where: { id: referenceId },
       data: {
         paymentStatus: isSuccess ? 'completed' : 'failed',
         status: isSuccess ? 'payment_confirmed' : 'cancelled',
         ...(isSuccess ? { paymentConfirmedAt: new Date() } : {}),
       },
+      include: { hotel: true },
     });
-  } catch {
-    // Webhook processing errors are silent — booking status stays as-is
+
+    if (!isSuccess) return;
+
+    // Generate invoice and send confirmation email
+    const hotel = updated.hotel;
+    let populatedBooking = { ...updated, _id: updated.id, hotelId: hotel };
+
+    let invoicePDF = null;
+    try {
+      if (!updated.invoiceNumber) {
+        const invoiceNumber = generateInvoiceNumber();
+        const withInvoice = await prisma.booking.update({
+          where: { id: referenceId },
+          data: { invoiceNumber, invoiceGeneratedAt: new Date() },
+          include: { hotel: true },
+        });
+        populatedBooking = { ...withInvoice, _id: withInvoice.id, hotelId: hotel };
+      }
+      invoicePDF = await generateInvoicePDF(populatedBooking, hotel);
+    } catch (e) {
+      console.error('[webhook] Invoice error:', e.message);
+    }
+
+    const attachments = invoicePDF
+      ? [{ filename: `Invoice-${populatedBooking.invoiceNumber || referenceId}.pdf`, content: invoicePDF }]
+      : [];
+
+    try {
+      const emailContent = paymentConfirmedEmail(populatedBooking, hotel);
+      await sendEmail({ to: updated.userEmail, subject: emailContent.subject, html: emailContent.html, text: emailContent.text, attachments });
+      if (updated.userPhone) {
+        await sendWhatsAppToCustomer(updated.userPhone, whatsappTemplates.paymentConfirmed(populatedBooking, hotel));
+      }
+    } catch (e) {
+      console.error('[webhook] Email error:', e.message);
+    }
+
+    try {
+      const adminEmail = adminNewBookingNotification(populatedBooking, hotel);
+      await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@nonsatravels.com', subject: adminEmail.subject, html: adminEmail.html, text: adminEmail.text });
+      await sendWhatsAppMessage(`Payment confirmed:\nHotel: ${hotel.name}\nGuest: ${updated.userName}\nAmount: $${updated.totalPrice}\nMethod: ${updated.paymentMethod}`);
+    } catch (e) {
+      console.error('[webhook] Admin notification error:', e.message);
+    }
+  } catch (err) {
+    console.error('[webhook] Error:', err.message);
   }
 };

@@ -32,8 +32,6 @@ enum PaymentStatus {
 
 enum PaymentMethod {
   card
-  paypal
-  flutterwave
   cash
   mobile_money
 }

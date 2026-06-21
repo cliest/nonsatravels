@@ -245,6 +245,7 @@ const Payment = () => {
       return;
     }
 
+    if (processing) return;
     setProcessing(true);
 
     try {
@@ -256,9 +257,10 @@ const Payment = () => {
           if (additionalServices[service]) additionalCost += serviceCosts[service];
         });
 
-        const totalAmount = (bookingData.totalPrice || 0) + additionalCost;
+        const totalAmount = ((bookingData.totalPrice || 0) + additionalCost) - getDiscount();
         if (!totalAmount || totalAmount <= 0) {
           toast.error("Invalid booking amount. Please try again.");
+          setProcessing(false);
           return;
         }
 
@@ -267,7 +269,6 @@ const Payment = () => {
           checkInDate: bookingData.checkInDate,
           checkOutDate: bookingData.checkOutDate,
           guests: bookingData.guests,
-          roomsRequested: bookingData.guests || 1,
           totalPrice: totalAmount,
           userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
           userEmail: personalInfo.email,
