@@ -141,6 +141,22 @@ router.put('/:id', verifyAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// @route   PATCH /api/promo/:id/toggle
+router.patch('/:id/toggle', verifyAuth, requireAdmin, async (req, res) => {
+  try {
+    const promo = await prisma.promoCode.findUnique({ where: { id: req.params.id } });
+    if (!promo) return res.status(404).json({ success: false, message: 'Promo code not found' });
+    const updated = await prisma.promoCode.update({
+      where: { id: req.params.id },
+      data: { isActive: !promo.isActive },
+    });
+    res.status(200).json({ success: true, message: `Promo code ${updated.isActive ? 'activated' : 'deactivated'}`, data: updated });
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ success: false, message: 'Promo code not found' });
+    res.status(500).json({ success: false, message: 'Failed to toggle promo code' });
+  }
+});
+
 // @route   DELETE /api/promo/:id
 router.delete('/:id', verifyAuth, requireAdmin, async (req, res) => {
   try {

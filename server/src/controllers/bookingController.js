@@ -86,7 +86,7 @@ export const createBooking = async (req, res) => {
   try {
     const {
       hotelId, checkInDate, checkOutDate, guests, paymentId, paymentMethod,
-      paymentStatus, roomsRequested, referralCode, userName: guestName,
+      paymentStatus, roomsRequested, referralCode, promoCode, userName: guestName,
       userEmail: guestEmail, userPhone, specialRequests, roomPreferences, totalPrice,
     } = req.body;
 
@@ -132,6 +132,36 @@ export const createBooking = async (req, res) => {
       }
     }
 
+    let promoDiscount = 0;
+    let appliedPromoId = null;
+    if (promoCode) {
+      const promo = await prisma.promoCode.findFirst({
+        where: { code: promoCode.toUpperCase(), isActive: true },
+        include: { usedBy: true },
+      });
+      if (promo) {
+        const now = new Date();
+        const userUsed = promo.usedBy.filter((u) => u.userId === userId).length;
+        const valid =
+          now >= promo.validFrom &&
+          now <= promo.validUntil &&
+          (promo.usageLimit === null || promo.usageCount < promo.usageLimit) &&
+          userUsed < promo.usagePerUser &&
+          finalPrice >= promo.minBookingAmount &&
+          (promo.applicableHotels.length === 0 || promo.applicableHotels.includes(hotelId));
+        if (valid) {
+          let disc = promo.discountType === 'percentage'
+            ? (finalPrice * promo.discountValue) / 100
+            : promo.discountValue;
+          if (promo.maxDiscount !== null && disc > promo.maxDiscount) disc = promo.maxDiscount;
+          if (disc > finalPrice) disc = finalPrice;
+          promoDiscount = Math.round(disc * 100) / 100;
+          finalPrice = Math.max(0, finalPrice - promoDiscount);
+          appliedPromoId = promo.id;
+        }
+      }
+    }
+
     await reserveRooms(hotelId, checkInDate, checkOutDate, roomsRequested || 1);
 
     const booking = await prisma.booking.create({
@@ -154,12 +184,23 @@ export const createBooking = async (req, res) => {
         status: paymentStatus === 'completed' ? 'payment_confirmed' : 'pending_payment',
         pricingDetails: pricing.breakdown,
         referralDiscount: discountApplied,
+        ...(promoCode && promoDiscount > 0 ? { promoCode: promoCode.toUpperCase(), promoDiscount } : {}),
       },
       include: bookingInclude,
     });
 
     if (discountApplied) {
       await applyReferralDiscount(userId, userEmail, booking.id, pricing.totalPrice, referralCode);
+    }
+
+    if (appliedPromoId) {
+      await prisma.promoCode.update({
+        where: { id: appliedPromoId },
+        data: {
+          usageCount: { increment: 1 },
+          usedBy: { create: { userId: userId || 'guest', bookingId: booking.id, usedAt: new Date() } },
+        },
+      }).catch((e) => console.error('[createBooking] promo record error:', e.message));
     }
 
     let populatedBooking = formatBooking(booking);

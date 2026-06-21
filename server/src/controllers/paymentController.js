@@ -11,9 +11,53 @@ const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
 const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
 const WEBHOOK_URL = `${SERVER_URL}/api/payments/webhook`;
 
+// Validate a promo code and calculate the discount to apply
+const validateAndApplyPromo = async (promoCode, userId, amount, hotelId) => {
+  if (!promoCode) return { discount: 0, promo: null };
+
+  const promo = await prisma.promoCode.findFirst({
+    where: { code: promoCode.toUpperCase(), isActive: true },
+    include: { usedBy: true },
+  });
+  if (!promo) return { discount: 0, promo: null };
+
+  const now = new Date();
+  if (now < promo.validFrom || now > promo.validUntil) return { discount: 0, promo: null };
+  if (promo.usageLimit !== null && promo.usageCount >= promo.usageLimit) return { discount: 0, promo: null };
+  if (userId) {
+    const used = promo.usedBy.filter((u) => u.userId === userId).length;
+    if (used >= promo.usagePerUser) return { discount: 0, promo: null };
+  }
+  if (amount < promo.minBookingAmount) return { discount: 0, promo: null };
+  if (promo.applicableHotels.length > 0 && hotelId && !promo.applicableHotels.includes(hotelId)) return { discount: 0, promo: null };
+
+  let discount = promo.discountType === 'percentage'
+    ? (amount * promo.discountValue) / 100
+    : promo.discountValue;
+  if (promo.maxDiscount !== null && discount > promo.maxDiscount) discount = promo.maxDiscount;
+  if (discount > amount) discount = amount;
+  return { discount: Math.round(discount * 100) / 100, promo };
+};
+
+// Record promo usage after a successful booking
+const recordPromoUsage = async (promoId, userId, bookingId) => {
+  if (!promoId) return;
+  try {
+    await prisma.promoCode.update({
+      where: { id: promoId },
+      data: {
+        usageCount: { increment: 1 },
+        usedBy: { create: { userId: userId || 'guest', bookingId, usedAt: new Date() } },
+      },
+    });
+  } catch (e) {
+    console.error('[recordPromoUsage] error:', e.message);
+  }
+};
+
 // Shared setup: validate hotel, check availability, calculate server-side price, reserve, create booking
 const createLipilaBooking = async (body, paymentMethod) => {
-  const { hotelId, checkInDate, checkOutDate, guests, userId } = body;
+  const { hotelId, checkInDate, checkOutDate, guests, userId, promoCode } = body;
 
   const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
   if (!hotel) throw Object.assign(new Error('Hotel not found'), { statusCode: 404 });
@@ -24,11 +68,14 @@ const createLipilaBooking = async (body, paymentMethod) => {
   }
 
   const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate);
-  const finalPrice = pricing.totalPrice || body.totalPrice;
+  let finalPrice = pricing.totalPrice || body.totalPrice;
 
   if (!finalPrice || finalPrice <= 0) {
     throw Object.assign(new Error('Unable to calculate booking price.'), { statusCode: 400 });
   }
+
+  const { discount, promo } = await validateAndApplyPromo(promoCode, userId, finalPrice, hotelId);
+  if (discount > 0) finalPrice = Math.max(0, finalPrice - discount);
 
   await reserveRooms(hotelId, checkInDate, checkOutDate, 1);
 
@@ -49,12 +96,13 @@ const createLipilaBooking = async (body, paymentMethod) => {
       paymentMethod,
       paymentStatus: 'pending',
       status: 'pending_payment',
+      ...(promoCode && discount > 0 ? { promoCode: promoCode.toUpperCase(), promoDiscount: discount } : {}),
       ...(userId ? { userId } : {}),
     },
     include: { hotel: true },
   });
 
-  return { booking, hotel, finalPrice };
+  return { booking, hotel, finalPrice, appliedPromo: promo };
 };
 
 export const initiateMoMo = async (req, res) => {
@@ -64,9 +112,9 @@ export const initiateMoMo = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Phone number is required for mobile money payment' });
   }
 
-  let booking, hotel, finalPrice;
+  let booking, hotel, finalPrice, appliedPromo;
   try {
-    ({ booking, hotel, finalPrice } = await createLipilaBooking(bookingData, 'mobile_money'));
+    ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'mobile_money'));
   } catch (err) {
     return res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
@@ -96,6 +144,7 @@ export const initiateMoMo = async (req, res) => {
         referenceId: booking.id,
         identifier: lipilaRes.identifier,
         status: lipilaRes.status,
+        promoApplied: appliedPromo ? { code: appliedPromo.code, discount: booking.promoDiscount } : null,
       },
     });
   } catch (err) {
@@ -112,9 +161,9 @@ export const initiateCard = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Customer info is required for card payment' });
   }
 
-  let booking, hotel, finalPrice;
+  let booking, hotel, finalPrice, appliedPromo;
   try {
-    ({ booking, hotel, finalPrice } = await createLipilaBooking(bookingData, 'card'));
+    ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'card'));
   } catch (err) {
     return res.status(err.statusCode || 500).json({ success: false, message: err.message });
   }
@@ -253,6 +302,12 @@ export const handleWebhook = async (req, res) => {
     });
 
     if (!isSuccess) return;
+
+    // Record promo code usage if applicable
+    if (booking.promoCode) {
+      const promo = await prisma.promoCode.findFirst({ where: { code: booking.promoCode } });
+      if (promo) await recordPromoUsage(promo.id, booking.userId, referenceId);
+    }
 
     // Generate invoice and send confirmation email
     const hotel = updated.hotel;

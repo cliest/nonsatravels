@@ -176,6 +176,8 @@ model Booking {
   paymentConfirmedBy  String?
   modificationHistory Json           @default("[]")
   referralDiscount    Json?
+  promoCode           String?
+  promoDiscount       Float?
   invoiceNumber       String?        @unique
   invoiceGeneratedAt  DateTime?
   createdAt           DateTime       @default(now())

@@ -27,11 +27,15 @@ import {
   faFileInvoice,
   faEnvelope,
   faDownload,
+  faTag,
+  faToggleOn,
+  faToggleOff,
+  faPercent,
 } from "@fortawesome/free-solid-svg-icons";
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -145,6 +149,26 @@ const AdminDashboard = () => {
     isFeatured: false,
     metaTitle: "",
     metaDescription: "",
+  });
+
+  // Promo Code Management
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [editingPromo, setEditingPromo] = useState(null);
+  const [newPromo, setNewPromo] = useState({
+    code: "",
+    description: "",
+    discountType: "percentage",
+    discountValue: "",
+    minBookingAmount: "0",
+    maxDiscount: "",
+    validFrom: "",
+    validUntil: "",
+    usageLimit: "",
+    usagePerUser: "1",
+    isFirstBookingOnly: false,
+    isActive: true,
   });
 
   // Available amenities
@@ -382,6 +406,109 @@ const AdminDashboard = () => {
     'News',
     'Guides',
   ];
+
+  // Promo Code Handlers
+  const fetchPromoCodes = async () => {
+    setPromoLoading(true);
+    try {
+      const res = await promoAPI.getAll();
+      if (res.data.success) setPromoCodes(res.data.data);
+    } catch {
+      toast.error("Failed to load promo codes");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const resetPromoForm = () => {
+    setNewPromo({
+      code: "",
+      description: "",
+      discountType: "percentage",
+      discountValue: "",
+      minBookingAmount: "0",
+      maxDiscount: "",
+      validFrom: "",
+      validUntil: "",
+      usageLimit: "",
+      usagePerUser: "1",
+      isFirstBookingOnly: false,
+      isActive: true,
+    });
+    setEditingPromo(null);
+  };
+
+  const handlePromoSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      code: newPromo.code.toUpperCase(),
+      description: newPromo.description,
+      discountType: newPromo.discountType,
+      discountValue: parseFloat(newPromo.discountValue),
+      minBookingAmount: parseFloat(newPromo.minBookingAmount) || 0,
+      maxDiscount: newPromo.maxDiscount ? parseFloat(newPromo.maxDiscount) : null,
+      validFrom: new Date(newPromo.validFrom).toISOString(),
+      validUntil: new Date(newPromo.validUntil).toISOString(),
+      usageLimit: newPromo.usageLimit ? parseInt(newPromo.usageLimit) : null,
+      usagePerUser: parseInt(newPromo.usagePerUser) || 1,
+      isFirstBookingOnly: newPromo.isFirstBookingOnly,
+      isActive: newPromo.isActive,
+    };
+    try {
+      if (editingPromo) {
+        await promoAPI.update(editingPromo.id, payload);
+        toast.success("Promo code updated!");
+      } else {
+        await promoAPI.create(payload);
+        toast.success("Promo code created!");
+      }
+      setShowPromoModal(false);
+      resetPromoForm();
+      fetchPromoCodes();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to save promo code");
+    }
+  };
+
+  const handleDeletePromo = async (id) => {
+    if (!window.confirm("Delete this promo code?")) return;
+    try {
+      await promoAPI.delete(id);
+      toast.success("Promo code deleted");
+      fetchPromoCodes();
+    } catch {
+      toast.error("Failed to delete promo code");
+    }
+  };
+
+  const handleTogglePromo = async (id) => {
+    try {
+      const res = await promoAPI.toggle(id);
+      toast.success(res.data.message);
+      fetchPromoCodes();
+    } catch {
+      toast.error("Failed to toggle promo code");
+    }
+  };
+
+  const openEditPromo = (promo) => {
+    setEditingPromo(promo);
+    setNewPromo({
+      code: promo.code,
+      description: promo.description,
+      discountType: promo.discountType,
+      discountValue: String(promo.discountValue),
+      minBookingAmount: String(promo.minBookingAmount),
+      maxDiscount: promo.maxDiscount != null ? String(promo.maxDiscount) : "",
+      validFrom: promo.validFrom.slice(0, 10),
+      validUntil: promo.validUntil.slice(0, 10),
+      usageLimit: promo.usageLimit != null ? String(promo.usageLimit) : "",
+      usagePerUser: String(promo.usagePerUser),
+      isFirstBookingOnly: promo.isFirstBookingOnly,
+      isActive: promo.isActive,
+    });
+    setShowPromoModal(true);
+  };
 
   // Calculate dashboard stats
   // Only count revenue from confirmed and completed bookings
@@ -1217,6 +1344,14 @@ const AdminDashboard = () => {
                   if (blogPosts.length === 0) fetchBlogPosts();
                 }}
                 label="Blog"
+              />
+              <TabButton
+                active={activeTab === "promos"}
+                onClick={() => {
+                  setActiveTab("promos");
+                  if (promoCodes.length === 0) fetchPromoCodes();
+                }}
+                label="Promo Codes"
               />
             </div>
           </div>
@@ -2289,6 +2424,118 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+
+            {/* Promo Codes Tab */}
+            {activeTab === "promos" && (
+              <div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Promo Codes</h2>
+                  <button
+                    onClick={() => { resetPromoForm(); setShowPromoModal(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    New Promo Code
+                  </button>
+                </div>
+
+                {promoLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : promoCodes.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <FontAwesomeIcon icon={faTag} className="text-4xl mb-3 text-gray-300" />
+                    <p>No promo codes yet. Create your first one!</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-500 border-b border-gray-200">
+                          <th className="pb-3 font-medium">Code</th>
+                          <th className="pb-3 font-medium">Discount</th>
+                          <th className="pb-3 font-medium">Valid Period</th>
+                          <th className="pb-3 font-medium">Usage</th>
+                          <th className="pb-3 font-medium">Status</th>
+                          <th className="pb-3 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {promoCodes.map((promo) => (
+                          <tr key={promo.id} className="hover:bg-gray-50">
+                            <td className="py-4 pr-4">
+                              <div className="font-bold text-gray-900 font-mono">{promo.code}</div>
+                              <div className="text-xs text-gray-500 mt-0.5">{promo.description}</div>
+                              {promo.isFirstBookingOnly && (
+                                <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded mt-1 inline-block">First booking only</span>
+                              )}
+                            </td>
+                            <td className="py-4 pr-4">
+                              <div className="font-semibold text-green-700">
+                                {promo.discountType === 'percentage'
+                                  ? `${promo.discountValue}%`
+                                  : `$${promo.discountValue}`}
+                              </div>
+                              {promo.maxDiscount != null && (
+                                <div className="text-xs text-gray-500">max ${promo.maxDiscount}</div>
+                              )}
+                              {promo.minBookingAmount > 0 && (
+                                <div className="text-xs text-gray-500">min ${promo.minBookingAmount}</div>
+                              )}
+                            </td>
+                            <td className="py-4 pr-4">
+                              <div className="text-xs text-gray-700">
+                                {new Date(promo.validFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                              <div className="text-xs text-gray-500">to</div>
+                              <div className="text-xs text-gray-700">
+                                {new Date(promo.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                            </td>
+                            <td className="py-4 pr-4">
+                              <div className="text-sm">
+                                {promo.usageCount}{promo.usageLimit != null ? `/${promo.usageLimit}` : ''} used
+                              </div>
+                              <div className="text-xs text-gray-500">{promo.usagePerUser}/user</div>
+                            </td>
+                            <td className="py-4 pr-4">
+                              <button
+                                onClick={() => handleTogglePromo(promo.id)}
+                                className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                                  promo.isActive ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-500'
+                                }`}
+                              >
+                                <FontAwesomeIcon icon={promo.isActive ? faToggleOn : faToggleOff} className="text-lg" />
+                                {promo.isActive ? 'Active' : 'Inactive'}
+                              </button>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => openEditPromo(promo)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Edit"
+                                >
+                                  <FontAwesomeIcon icon={faEdit} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePromo(promo.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Delete"
+                                >
+                                  <FontAwesomeIcon icon={faTrash} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -2835,6 +3082,193 @@ const AdminDashboard = () => {
                     className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:bg-accent font-medium transition-colors"
                   >
                     Update Post
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Promo Code Create / Edit Modal */}
+        {showPromoModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FontAwesomeIcon icon={faTag} className="text-primary" />
+                  {editingPromo ? "Edit Promo Code" : "New Promo Code"}
+                </h2>
+                <button
+                  onClick={() => { setShowPromoModal(false); resetPromoForm(); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+
+              <form onSubmit={handlePromoSubmit} className="p-6 space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                    <input
+                      required
+                      type="text"
+                      value={newPromo.code}
+                      onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
+                      placeholder="e.g. SUMMER20"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type *</label>
+                    <select
+                      required
+                      value={newPromo.discountType}
+                      onChange={(e) => setNewPromo({ ...newPromo, discountType: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount ($)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                  <input
+                    required
+                    type="text"
+                    value={newPromo.description}
+                    onChange={(e) => setNewPromo({ ...newPromo, description: e.target.value })}
+                    placeholder="e.g. 20% off summer bookings"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Discount Value * {newPromo.discountType === 'percentage' ? '(%)' : '($)'}
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      max={newPromo.discountType === 'percentage' ? 100 : undefined}
+                      step="0.01"
+                      value={newPromo.discountValue}
+                      onChange={(e) => setNewPromo({ ...newPromo, discountValue: e.target.value })}
+                      placeholder="20"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Min Booking ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newPromo.minBookingAmount}
+                      onChange={(e) => setNewPromo({ ...newPromo, minBookingAmount: e.target.value })}
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Discount ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newPromo.maxDiscount}
+                      onChange={(e) => setNewPromo({ ...newPromo, maxDiscount: e.target.value })}
+                      placeholder="Leave blank for no cap"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid From *</label>
+                    <input
+                      required
+                      type="date"
+                      value={newPromo.validFrom}
+                      onChange={(e) => setNewPromo({ ...newPromo, validFrom: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until *</label>
+                    <input
+                      required
+                      type="date"
+                      value={newPromo.validUntil}
+                      onChange={(e) => setNewPromo({ ...newPromo, validUntil: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Usage Limit</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newPromo.usageLimit}
+                      onChange={(e) => setNewPromo({ ...newPromo, usageLimit: e.target.value })}
+                      placeholder="Leave blank for unlimited"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Uses Per User</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newPromo.usagePerUser}
+                      onChange={(e) => setNewPromo({ ...newPromo, usagePerUser: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-6 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newPromo.isFirstBookingOnly}
+                      onChange={(e) => setNewPromo({ ...newPromo, isFirstBookingOnly: e.target.checked })}
+                      className="w-4 h-4 text-primary rounded"
+                    />
+                    <span className="text-sm text-gray-700">First booking only</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newPromo.isActive}
+                      onChange={(e) => setNewPromo({ ...newPromo, isActive: e.target.checked })}
+                      className="w-4 h-4 text-primary rounded"
+                    />
+                    <span className="text-sm text-gray-700">Active</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPromoModal(false); resetPromoForm(); }}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:bg-accent font-medium transition-colors"
+                  >
+                    {editingPromo ? "Update Promo Code" : "Create Promo Code"}
                   </button>
                 </div>
               </form>

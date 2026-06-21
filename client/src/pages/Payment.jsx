@@ -278,6 +278,7 @@ const Payment = () => {
           paymentMethod: "cash",
           paymentStatus: "pending",
           status: "pending_payment",
+          ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
         };
 
         const response = await bookingAPI.create(bookingPayload);
@@ -315,6 +316,7 @@ const Payment = () => {
           specialRequests: personalInfo.specialRequests || null,
           roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
           phoneNumber: momoPhone.replace(/\s/g, ""),
+          ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
         });
 
         const { referenceId } = response.data.data;
@@ -348,6 +350,7 @@ const Payment = () => {
             city: personalInfo.city || "Lusaka",
             address: personalInfo.address || "N/A",
           },
+          ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
         });
 
         const { checkoutUrl } = response.data.data;
@@ -621,7 +624,7 @@ const Payment = () => {
                   />
                   <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
                     <FontAwesomeIcon icon={faWhatsapp} className="text-green-500" />
-                    Bank details and booking confirmation will be sent to this WhatsApp number. Please ensure it is active on WhatsApp.
+                    Booking confirmation and updates will be sent to this WhatsApp number. Please ensure it is active on WhatsApp.
                   </p>
                 </div>
 
