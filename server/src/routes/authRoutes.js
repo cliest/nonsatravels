@@ -79,6 +79,15 @@ router.post('/register', authLimiter, async (req, res) => {
       },
     });
 
+    // Auto-subscribe to newsletter
+    try {
+      await prisma.newsletterSubscriber.upsert({
+        where: { email },
+        update: { isActive: true },
+        create: { email, source: 'registration' },
+      });
+    } catch (e) { console.error('Failed to auto-subscribe:', e); }
+
     try {
       const emailContent = emailVerificationEmail(user, verificationToken);
       await sendEmail({ to: user.email, subject: emailContent.subject, html: emailContent.html, text: emailContent.text });
@@ -350,6 +359,7 @@ router.post('/google', async (req, res) => {
           password: await hashPassword(crypto.randomBytes(32).toString('hex')),
         },
       });
+      try { await prisma.newsletterSubscriber.upsert({ where: { email: user.email }, update: { isActive: true }, create: { email: user.email, source: 'google-signup' } }); } catch (e) { console.error('Auto-subscribe failed:', e); }
       try {
         const content = welcomeEmail(user);
         await sendEmail({ to: user.email, subject: content.subject, html: content.html, text: content.text });
@@ -412,6 +422,7 @@ router.post('/facebook', async (req, res) => {
           password: await hashPassword(crypto.randomBytes(32).toString('hex')),
         },
       });
+      try { await prisma.newsletterSubscriber.upsert({ where: { email: user.email }, update: { isActive: true }, create: { email: user.email, source: 'facebook-signup' } }); } catch (e) { console.error('Auto-subscribe failed:', e); }
       try {
         const content = welcomeEmail(user);
         await sendEmail({ to: user.email, subject: content.subject, html: content.html, text: content.text });
@@ -466,6 +477,7 @@ router.post('/apple', async (req, res) => {
           password: await hashPassword(crypto.randomBytes(32).toString('hex')),
         },
       });
+      try { await prisma.newsletterSubscriber.upsert({ where: { email: user.email }, update: { isActive: true }, create: { email: user.email, source: 'apple-signup' } }); } catch (e) { console.error('Auto-subscribe failed:', e); }
       try {
         const content = welcomeEmail(user);
         await sendEmail({ to: user.email, subject: content.subject, html: content.html, text: content.text });
