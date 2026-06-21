@@ -91,7 +91,7 @@ export const sendContactEmail = async (req, res) => {
               <p style="color: #666; font-size: 14px; margin-top: 20px;">
                 <strong>Contact Information:</strong><br>
                 Email: support@nonsatravels.com<br>
-                Phone: +260 211 234 567<br>
+                Phone: +260 970 462 777<br>
                 Working Hours: Mon-Fri 8AM-6PM, Sat 9AM-4PM
               </p>
             </div>

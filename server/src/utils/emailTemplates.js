@@ -565,8 +565,8 @@ The Nonsa Travels Team
 
 Contact Information:
 Email: info@nonsatravels.com | support@nonsatravels.com
-Phone: +260 211 234 567 | +260 977 123 456
-Address: Cairo Road, City Centre, Lusaka, Zambia
+Phone: +260 970 462 777
+Address: Kwacha Street, Chingola, Zambia
     `,
   };
 };
@@ -602,7 +602,7 @@ export const bookingStatusUpdatedEmail = (booking, hotel, oldStatus, newStatus) 
               <p><strong>Hotel:</strong> ${hotel?.name || 'N/A'}</p>
               
               <div class="info-box">
-                <p style="margin: 0;">If you have any questions about this status change, please don't hesitate to contact us at support@nonsatravels.com or call +260 211 234 567.</p>
+                <p style="margin: 0;">If you have any questions about this status change, please don't hesitate to contact us at support@nonsatravels.com or call +260 970 462 777.</p>
               </div>
               
               <p style="margin-top: 30px;">Thank you for choosing Nonsa Travels!</p>
@@ -630,8 +630,8 @@ The Nonsa Travels Team
 
 Contact Information:
 Email: info@nonsatravels.com | support@nonsatravels.com
-Phone: +260 211 234 567 | +260 977 123 456
-Address: Cairo Road, City Centre, Lusaka, Zambia
+Phone: +260 970 462 777
+Address: Kwacha Street, Chingola, Zambia
 Business Hours: Monday - Friday: 8:00 AM - 6:00 PM | Saturday: 9:00 AM - 4:00 PM
     `,
   };
@@ -781,7 +781,7 @@ The Nonsa Travels Team
 
 Contact Information:
 Email: info@nonsatravels.com | support@nonsatravels.com
-Phone: +260 211 234 567 | +260 977 123 456
+Phone: +260 970 462 777
     `,
   };
 };
@@ -862,7 +862,7 @@ The Nonsa Travels Team
 
 Contact Information:
 Email: info@nonsatravels.com | support@nonsatravels.com
-Phone: +260 211 234 567 | +260 977 123 456
+Phone: +260 970 462 777
     `,
   };
 };

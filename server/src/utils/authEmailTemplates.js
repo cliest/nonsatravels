@@ -237,7 +237,7 @@ export const passwordChangedEmail = (user) => {
               <div class="info-box" style="background: #fef2f2; border-color: #ef4444; margin-top: 20px;">
                 <p style="margin: 0; color: #991b1b;">
                   <strong>WARNING - Unauthorized Access Attempt:</strong><br>
-                  If you didn't make this change, please contact us immediately at <a href="mailto:support@nonsatravels.com" style="color: #dc2626;">support@nonsatravels.com</a> or call +260 977 123 456.
+                  If you didn't make this change, please contact us immediately at <a href="mailto:support@nonsatravels.com" style="color: #dc2626;">support@nonsatravels.com</a> or call +260 970 462 777.
                 </p>
               </div>
 
@@ -259,7 +259,7 @@ Hello ${user.firstName},
 
 This is a confirmation that your password has been successfully changed.
 
-If you didn't make this change, please contact us immediately at support@nonsatravels.com or call +260 977 123 456.
+If you didn't make this change, please contact us immediately at support@nonsatravels.com or call +260 970 462 777.
 
 Best regards,
 The Nonsa Travels Team

@@ -223,13 +223,23 @@ export const generateInvoicePDF = async (booking, hotel) => {
 
       itemY += 25;
 
-      // Discount if applicable
+      // Referral discount if applicable
       if (booking.referralDiscount && booking.referralDiscount.amount > 0) {
         doc.fillColor('#059669')
-          .text(`Discount (${booking.referralDiscount.code})`, 60, itemY)
+          .text(`Referral Discount (${booking.referralDiscount.code})`, 60, itemY)
           .text('1', 350, itemY)
           .text(`-${formatCurrency(booking.referralDiscount.amount)}`, 420, itemY)
           .text(`-${formatCurrency(booking.referralDiscount.amount)}`, 480, itemY, { align: 'right', width: 55 });
+        itemY += 25;
+      }
+
+      // Promo code discount if applicable
+      if (booking.promoCode && booking.promoDiscount > 0) {
+        doc.fillColor('#059669')
+          .text(`Promo Code (${booking.promoCode})`, 60, itemY)
+          .text('1', 350, itemY)
+          .text(`-${formatCurrency(booking.promoDiscount)}`, 420, itemY)
+          .text(`-${formatCurrency(booking.promoDiscount)}`, 480, itemY, { align: 'right', width: 55 });
         itemY += 25;
       }
 
@@ -414,7 +424,7 @@ export const generateInvoiceHTML = (booking, hotel) => {
             <strong>Nonsa Travels</strong><br>
             Premium Hotel Booking Service<br>
             Email: bookings@nonsatravels.com<br>
-            Phone: +1 (555) 123-4567
+            Phone: +260 970 462 777
           </div>
         </div>
         <div class="invoice-details">
@@ -489,10 +499,18 @@ export const generateInvoiceHTML = (booking, hotel) => {
           </tr>
           ${booking.referralDiscount && booking.referralDiscount.amount > 0 ? `
           <tr>
-            <td style="color: #059669;">Discount (${booking.referralDiscount.code})</td>
+            <td style="color: #059669;">Referral Discount (${booking.referralDiscount.code})</td>
             <td class="text-right">1</td>
             <td class="text-right" style="color: #059669;">-${formatCurrency(booking.referralDiscount.amount)}</td>
             <td class="text-right" style="color: #059669;">-${formatCurrency(booking.referralDiscount.amount)}</td>
+          </tr>
+          ` : ''}
+          ${booking.promoCode && booking.promoDiscount > 0 ? `
+          <tr>
+            <td style="color: #059669;">Promo Code (${booking.promoCode})</td>
+            <td class="text-right">1</td>
+            <td class="text-right" style="color: #059669;">-${formatCurrency(booking.promoDiscount)}</td>
+            <td class="text-right" style="color: #059669;">-${formatCurrency(booking.promoDiscount)}</td>
           </tr>
           ` : ''}
         </tbody>
