@@ -116,7 +116,7 @@ const App = () => {
             </div>
           </Suspense>
         </main>
-        <Footer />
+        {!isOwnerPath && <Footer />}
         {!isOwnerPath && <ChatWidget />}
         {!isOwnerPath && <CompareBar />}
       </WeatherProvider>
