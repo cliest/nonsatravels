@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLock,
@@ -28,11 +28,12 @@ import { useAuth, useUser } from "../context/AuthContext";
 const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   useAuth();
   const { user } = useUser();
-  
-  const bookingData = location.state?.bookingData;
 
+  const [bookingData, setBookingData] = useState(location.state?.bookingData || null);
+  const [loadingBooking, setLoadingBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [createdBooking, setCreatedBooking] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("mobile_money");
@@ -65,20 +66,46 @@ const Payment = () => {
     breakfast: false,
   });
 
+  // Fetch booking from URL param (email payment link)
   useEffect(() => {
-    if (!bookingData) {
+    const bookingId = searchParams.get('bookingId');
+    if (bookingId && !bookingData) {
+      setLoadingBooking(true);
+      bookingAPI.getById(bookingId).then(res => {
+        const b = res.data.data;
+        const hotel = b.hotelId || {};
+        setBookingData({
+          hotelId: hotel.id || b.hotelId,
+          hotelName: hotel.name || 'Hotel',
+          checkInDate: b.checkInDate,
+          checkOutDate: b.checkOutDate,
+          guests: b.guests,
+          totalPrice: b.totalPrice,
+          pricePerNight: b.pricePerNight,
+          roomTypeId: b.roomTypeId,
+          roomTypeName: b.roomTypeName,
+        });
+        setCreatedBooking(b);
+        setBookingStep(2);
+        setPersonalInfo(prev => ({
+          ...prev,
+          firstName: b.userName?.split(' ')[0] || prev.firstName,
+          lastName: b.userName?.split(' ').slice(1).join(' ') || prev.lastName,
+          email: b.userEmail || prev.email,
+          phone: b.userPhone || prev.phone,
+        }));
+      }).catch(() => {
+        toast.error("Booking not found. It may have expired or been cancelled.");
+        navigate("/hotels");
+      }).finally(() => setLoadingBooking(false));
+      return;
+    }
+
+    if (!bookingData && !bookingId) {
       toast.error("No booking data found. Please start a new booking.");
       navigate("/");
-    } else {
-      console.log("Payment Page - Booking Data Received:");
-      console.log("- hotelId:", bookingData.hotelId);
-      console.log("- totalPrice:", bookingData.totalPrice);
-      console.log("- checkInDate:", bookingData.checkInDate);
-      console.log("- checkOutDate:", bookingData.checkOutDate);
-      console.log("- guests:", bookingData.guests);
-      console.log("Full object:", bookingData);
     }
-    
+
     if (user) {
       setPersonalInfo(prev => ({
         ...prev,
@@ -87,9 +114,16 @@ const Payment = () => {
         email: user.email || prev.email,
       }));
     }
-  }, [bookingData, navigate, user]);
+  }, [searchParams, user]);
 
-  // Validate booking data exists
+  if (loadingBooking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (!bookingData) {
     return null;
   }
