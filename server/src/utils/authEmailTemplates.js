@@ -1,7 +1,7 @@
 // Email templates for authentication-related emails
 import { emailHeader, emailFooter, emailStyles } from './emailTemplates.js';
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nonsatravels-web-production.up.railway.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nonsatravels.com';
 
 // Email verification email
 export const emailVerificationEmail = (user, verificationToken) => {

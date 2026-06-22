@@ -51,6 +51,7 @@ const MagicLinkVerify = lazy(() => import("./pages/MagicLinkVerify"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App = () => {
@@ -110,6 +111,7 @@ const App = () => {
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/payment-callback" element={<PaymentCallback />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

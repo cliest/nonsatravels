@@ -57,6 +57,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/blog/categories
+router.get('/categories', async (req, res) => {
+  try {
+    const posts = await prisma.blogPost.findMany({
+      where: { status: 'published' },
+      select: { category: true },
+    });
+    const counts = {};
+    posts.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+    const categories = Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    res.status(200).json({ success: true, data: categories });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/blog/tags
+router.get('/tags', async (req, res) => {
+  try {
+    const posts = await prisma.blogPost.findMany({
+      where: { status: 'published' },
+      select: { tags: true },
+    });
+    const counts = {};
+    posts.forEach(p => (p.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+    const tags = Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    res.status(200).json({ success: true, data: tags });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   GET /api/blog/featured
 router.get('/featured', async (req, res) => {
   try {

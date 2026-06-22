@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'Nonsa Travels <reservations@nonsatravels.com>';
 const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'support@nonsatravels.com';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nonsatravels-web-production.up.railway.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nonsatravels.com';
 
 const htmlToPlainText = (html) => {
   if (!html) return '';
