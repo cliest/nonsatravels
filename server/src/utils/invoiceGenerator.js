@@ -193,15 +193,32 @@ export const generateInvoicePDF = async (booking, hotel) => {
 
       y += 5;
 
+      // Calculate totals from line items
+      const roomTotal = pricePerNight * nights;
+      const servicesTotal = services.reduce((sum, s) => sum + (s.cost || 0), 0);
+      const discounts = (booking.referralDiscount?.amount || 0) + (booking.promoDiscount || 0);
+      const computedTotal = roomTotal + servicesTotal - discounts;
+
       // Subtotal line
       doc.strokeColor(border).lineWidth(1).moveTo(320, y).lineTo(545, y).stroke();
       y += 10;
 
-      doc.fontSize(9).fillColor(gray).font('Helvetica').text('Subtotal:', 320, y);
-      doc.fillColor(dark).font('Helvetica-Bold').text(fmt(booking.totalPrice), 445, y, { width: 90, align: 'right' });
-      y += 18;
+      if (servicesTotal > 0) {
+        doc.fontSize(9).fillColor(gray).font('Helvetica').text('Room Charges:', 320, y);
+        doc.fillColor(dark).font('Helvetica-Bold').text(fmt(roomTotal), 445, y, { width: 90, align: 'right' });
+        y += 16;
+        doc.fontSize(9).fillColor(gray).font('Helvetica').text('Additional Services:', 320, y);
+        doc.fillColor(dark).font('Helvetica-Bold').text(fmt(servicesTotal), 445, y, { width: 90, align: 'right' });
+        y += 16;
+      }
 
-      doc.fillColor(gray).font('Helvetica').text('Tax:', 320, y);
+      if (discounts > 0) {
+        doc.fontSize(9).fillColor('#059669').font('Helvetica').text('Discounts:', 320, y);
+        doc.fillColor('#059669').font('Helvetica-Bold').text(`-${fmt(discounts)}`, 445, y, { width: 90, align: 'right' });
+        y += 16;
+      }
+
+      doc.fontSize(9).fillColor(gray).font('Helvetica').text('Tax:', 320, y);
       doc.fillColor(dark).font('Helvetica-Bold').text('$0.00', 445, y, { width: 90, align: 'right' });
       y += 20;
 
@@ -209,7 +226,7 @@ export const generateInvoicePDF = async (booking, hotel) => {
       doc.rect(320, y, 225, 35).fill(blue);
       doc.fontSize(13).fillColor('white').font('Helvetica-Bold')
         .text('TOTAL DUE:', 330, y + 10)
-        .text(fmt(booking.totalPrice), 445, y + 10, { width: 90, align: 'right' });
+        .text(fmt(computedTotal), 445, y + 10, { width: 90, align: 'right' });
       y += 50;
 
       // ── Payment info ──
