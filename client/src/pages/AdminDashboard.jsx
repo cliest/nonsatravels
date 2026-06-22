@@ -44,6 +44,8 @@ import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, news
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 import AdminChatDashboard from "../components/AdminChatDashboard";
 import {
   LineChart,
@@ -549,9 +551,22 @@ const AdminDashboard = () => {
     }
   };
 
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ align: [] }],
+      ['link', 'image'],
+      ['clean'],
+    ],
+  };
+
   const handleSendNewsletter = async (e) => {
     e.preventDefault();
-    if (!newsletterForm.subject || !newsletterForm.body) {
+    const bodyText = newsletterForm.body?.replace(/<[^>]+>/g, '').trim();
+    if (!newsletterForm.subject || !bodyText) {
       toast.error("Subject and body are required");
       return;
     }
@@ -562,12 +577,8 @@ const AdminDashboard = () => {
         setSendingNewsletter(false);
         return;
       }
-      const htmlBody = newsletterForm.body
-        .split('\n\n')
-        .map(para => `<p style="margin: 0 0 16px 0; color: #475569; font-size: 15px; line-height: 1.7;">${para.replace(/\n/g, '<br/>')}</p>`)
-        .join('');
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 20px;"><div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);"><div style="background: linear-gradient(135deg, #2b3990 0%, #1e2a6e 100%); padding: 40px 30px; text-align: center;"><h1 style="margin: 0; color: white; font-size: 24px;">${newsletterForm.subject}</h1></div><div style="padding: 32px 30px;">${htmlBody}</div><div style="background: #f8fafc; padding: 24px 30px; text-align: center; border-top: 1px solid #e2e8f0;"><p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 12px;">© ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p><p style="margin: 0; font-size: 12px; color: #94a3b8;">Kwacha Street, Chingola, Zambia | +260 970 462 777</p></div></div></body></html>`;
-      const res = await newsletterAPI.sendNewsletter({ subject: newsletterForm.subject, html, text: newsletterForm.body });
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>img { max-width: 100%; height: auto; border-radius: 8px; margin: 12px 0; } a { color: #2b3990; } ul, ol { padding-left: 20px; } p { margin: 0 0 14px 0; color: #475569; font-size: 15px; line-height: 1.7; }</style></head><body style="font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 20px;"><div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);"><div style="background: linear-gradient(135deg, #2b3990 0%, #1e2a6e 100%); padding: 40px 30px; text-align: center;"><h1 style="margin: 0; color: white; font-size: 24px;">${newsletterForm.subject}</h1></div><div style="padding: 32px 30px; color: #475569; font-size: 15px; line-height: 1.7;">${newsletterForm.body}</div><div style="background: #f8fafc; padding: 24px 30px; text-align: center; border-top: 1px solid #e2e8f0;"><p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 12px;">© ${new Date().getFullYear()} Nonsa Travels. All rights reserved.</p><p style="margin: 0; font-size: 12px; color: #94a3b8;">Kwacha Street, Chingola, Zambia | +260 970 462 777</p></div></div></body></html>`;
+      const res = await newsletterAPI.sendNewsletter({ subject: newsletterForm.subject, html, text: bodyText });
       if (res.data.success) {
         toast.success(res.data.message);
         setShowSendNewsletterModal(false);
@@ -2708,14 +2719,14 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Body *</label>
-                  <p className="text-xs text-gray-500 mb-2">Plain text. Separate paragraphs with a blank line — they'll render correctly in the email.</p>
-                  <textarea
-                    required
-                    rows={12}
+                  <p className="text-xs text-gray-500 mb-2">Use the toolbar to format text, add images, links, and more.</p>
+                  <ReactQuill
+                    theme="snow"
                     value={newsletterForm.body}
-                    onChange={(e) => setNewsletterForm({ ...newsletterForm, body: e.target.value })}
-                    placeholder={"Dear Subscriber,\n\nWe have some exciting news to share...\n\nBest regards,\nNonsa Travels Team"}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y font-mono text-sm"
+                    onChange={(value) => setNewsletterForm({ ...newsletterForm, body: value })}
+                    modules={quillModules}
+                    placeholder="Write your newsletter content here..."
+                    className="bg-white rounded-lg [&_.ql-container]:min-h-[250px] [&_.ql-container]:text-sm [&_.ql-editor]:min-h-[250px]"
                   />
                 </div>
                 <div className="flex gap-3 pt-2">
