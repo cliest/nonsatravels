@@ -301,14 +301,14 @@ const HotelDetails = () => {
           <span className="font-medium">Back to Hotels</span>
         </button>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
           {/* Left Section - Hotel Details */}
-          <div className="lg:col-span-2 space-y-6 fade-in">
+          <div className="lg:col-span-2 space-y-6 fade-in min-w-0">
             {/* Image Gallery */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden card-hover">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               {/* Main Image */}
-              <div 
-                className="relative h-64 sm:h-80 md:h-96 bg-gray-200 overflow-hidden cursor-pointer group"
+              <div
+                className="relative h-56 sm:h-72 md:h-96 bg-gray-200 overflow-hidden cursor-pointer group"
                 onClick={() => handleImageClick(selectedImage)}
               >
                 <img
@@ -324,11 +324,11 @@ const HotelDetails = () => {
                   </div>
                 </div>
                 {/* Best Seller Badge */}
-                <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent text-gray-900 text-xs sm:text-sm font-bold rounded-full shadow-lg slide-in-left">
+                <div className="absolute top-3 sm:top-4 left-3 sm:left-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent text-gray-900 text-xs sm:text-sm font-bold rounded-full shadow-lg">
                   Featured
                 </div>
                 {/* Rating Badge */}
-                <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg slide-in-right">
+                <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg">
                   <StarRating rating={hotel.rating || 4.5} />
                   <span className="font-bold text-gray-800 text-sm sm:text-base">{hotel.rating || 4.5}</span>
                 </div>
@@ -368,7 +368,7 @@ const HotelDetails = () => {
             </div>
 
             {/* Hotel Information */}
-            <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 md:p-8 card-hover">
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
               {/* Header */}
               <div className="border-b border-gray-200 pb-5 sm:pb-6 mb-5 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
@@ -376,7 +376,7 @@ const HotelDetails = () => {
                     <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs sm:text-sm font-medium rounded-full mb-3">
                       {hotel.roomTypes?.length || 0} Room Type{hotel.roomTypes?.length !== 1 ? 's' : ''} Available
                     </span>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 gradient-text">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 gradient-text break-words">
                       {hotel.name}
                     </h1>
                     <div className="flex items-center gap-2 text-sm sm:text-base text-gray-600">
@@ -394,7 +394,7 @@ const HotelDetails = () => {
                 </div>
 
                 {/* Share Buttons */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="mt-6 p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                   <p className="text-sm font-semibold text-gray-700 mb-3">Share this hotel:</p>
                   <ShareButtons
                     url={window.location.href}
@@ -479,7 +479,7 @@ const HotelDetails = () => {
           </div>
 
           {/* Right Section - Booking Card */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 min-w-0">
             {/* Room Type Selection */}
             {hotel.roomTypes && hotel.roomTypes.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 mb-4 card-hover">
@@ -518,7 +518,7 @@ const HotelDetails = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24 slide-in-right card-hover">
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-24">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Reserve Your Stay</h3>
               
               <form onSubmit={handleBooking} className="space-y-4">
