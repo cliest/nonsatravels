@@ -272,7 +272,7 @@ const HotelDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16">
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16 overflow-x-hidden">
       <Helmet>
         <title>{hotel.name} - Book Now | Nonsa Travels</title>
         <meta name="description" content={`Book ${hotel.name} in ${hotel.city}, ${hotel.address}. Starting from $${hotel.pricePerNight}/night. ${hotel.amenities?.slice(0, 4).join(', ')}.`} />
@@ -683,11 +683,11 @@ const HotelDetails = () => {
         </div>
 
         {/* Reviews Section */}
-        <div className="mt-16">
-          <div className="flex items-center justify-between mb-8">
+        <div className="mt-10 sm:mt-16">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Guest Reviews</h2>
-              <div className="flex items-center gap-4">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">Guest Reviews</h2>
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <StarRating rating={parseFloat(getAverageRating())} />
                   <span className="text-2xl font-bold text-primary">{getAverageRating()}</span>
@@ -710,7 +710,7 @@ const HotelDetails = () => {
 
           {/* Rating Distribution */}
           {reviews.length > 0 && (
-            <div className="bg-gray-50 rounded-xl p-6 mb-8">
+            <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
               <h3 className="font-semibold text-gray-900 mb-4">Rating Distribution</h3>
               <div className="space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {
@@ -849,15 +849,15 @@ const HotelDetails = () => {
           {reviews.length > 0 ? (
             <div className="space-y-6">
               {getSortedReviews().map((review) => (
-                <div key={review.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-4">
+                <div key={review.id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <img
                       src={review.userAvatar}
                       alt={review.userName}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
                         <div>
                           <h4 className="font-semibold text-gray-900">{review.userName}</h4>
                           <p className="text-sm text-gray-500">
@@ -914,7 +914,7 @@ const HotelDetails = () => {
 
         {/* Similar Hotels Section */}
         <div className="mt-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Similar Hotels You Might Like</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Similar Hotels You Might Like</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {similarHotels.map((room) => (
                 <div
