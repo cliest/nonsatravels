@@ -541,6 +541,7 @@ const Payment = () => {
                     <span className="text-blue-600">
                       {formatCurrency(calculateTotalCost())}
                     </span>
+                    <span className="text-[10px] text-gray-400 block font-normal">All payments processed in USD</span>
                   </div>
                 </div>
               </div>

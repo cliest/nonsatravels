@@ -319,9 +319,9 @@ const AdminChatDashboard = () => {
         </div>
       </div>
 
-      <div className="flex h-[600px]">
+      <div className="flex flex-col md:flex-row h-[400px] md:h-[600px]">
         {/* Chat List */}
-        <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+        <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 overflow-y-auto max-h-[200px] md:max-h-none">
           {/* Filter */}
           <div className="p-4 border-b border-gray-200 space-y-2">
             <select
@@ -547,7 +547,7 @@ const AdminChatDashboard = () => {
                     </button>
                     
                     {showCannedDropdown && (
-                      <div className="absolute bottom-full mb-2 left-0 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto flex flex-col">
+                      <div className="absolute bottom-full mb-2 left-0 w-64 md:w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-64 md:max-h-96 overflow-y-auto flex flex-col">
                         <div className="p-3 border-b border-gray-200 bg-gray-50 rounded-t-xl flex items-center justify-between">
                           <p className="text-sm font-semibold text-gray-700">Quick Replies</p>
                           <button

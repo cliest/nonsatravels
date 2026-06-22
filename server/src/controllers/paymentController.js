@@ -331,12 +331,12 @@ export const handleWebhook = async (req, res) => {
     }
 
     const attachments = invoicePDF
-      ? [{ filename: `Invoice-${populatedBooking.invoiceNumber || referenceId}.pdf`, content: invoicePDF }]
+      ? [{ filename: `Receipt-${populatedBooking.invoiceNumber || referenceId}.pdf`, content: invoicePDF }]
       : [];
 
     try {
       const emailContent = paymentConfirmedEmail(populatedBooking, hotel);
-      await sendEmail({ to: updated.userEmail, subject: emailContent.subject, html: emailContent.html, text: emailContent.text, attachments });
+      await sendEmail({ to: updated.userEmail, subject: `Payment Receipt - ${hotel.name} | Nonsa Travels`, html: emailContent.html, text: emailContent.text, attachments });
       if (updated.userPhone) {
         await sendWhatsAppToCustomer(updated.userPhone, whatsappTemplates.paymentConfirmed(populatedBooking, hotel));
       }
