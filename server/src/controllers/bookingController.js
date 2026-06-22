@@ -118,7 +118,10 @@ export const createBooking = async (req, res) => {
     }
 
     const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate, roomTypeId || null);
-    let finalPrice = pricing.totalPrice || totalPrice;
+    const servicesCost = Array.isArray(additionalServices)
+      ? additionalServices.reduce((sum, s) => sum + (s.cost || 0), 0)
+      : 0;
+    let finalPrice = (pricing.totalPrice || totalPrice) + servicesCost;
     let discountApplied = null;
 
     if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) {

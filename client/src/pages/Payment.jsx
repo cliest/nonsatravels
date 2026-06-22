@@ -354,6 +354,9 @@ const Payment = () => {
         return;
       }
 
+      // Use the already-created booking's total (includes services + discounts)
+      const paymentTotal = createdBooking?.totalPrice || calculateTotalCost();
+
       // Mobile Money via Lipila
       if (paymentMethod === "mobile_money") {
         if (!momoPhone || momoPhone.trim().length < 9) {
@@ -362,17 +365,13 @@ const Payment = () => {
           return;
         }
 
-        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
-        let additionalCost = 0;
-        Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
-
         const response = await paymentAPI.initiateMoMo({
           hotelId: bookingData.hotelId,
           hotelName: bookingData.hotelName,
           checkInDate: bookingData.checkInDate,
           checkOutDate: bookingData.checkOutDate,
           guests: bookingData.guests,
-          totalPrice: (bookingData.totalPrice + additionalCost) - getDiscount(),
+          totalPrice: paymentTotal,
           userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
           userEmail: personalInfo.email,
           userPhone: personalInfo.phone || momoPhone.replace(/\s/g, ""),
@@ -391,17 +390,13 @@ const Payment = () => {
 
       // Card payment via Lipila
       if (paymentMethod === "card") {
-        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
-        let additionalCost = 0;
-        Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
-
         const response = await paymentAPI.initiateCard({
           hotelId: bookingData.hotelId,
           hotelName: bookingData.hotelName,
           checkInDate: bookingData.checkInDate,
           checkOutDate: bookingData.checkOutDate,
           guests: bookingData.guests,
-          totalPrice: (bookingData.totalPrice + additionalCost) - getDiscount(),
+          totalPrice: paymentTotal,
           userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
           userEmail: personalInfo.email,
           userPhone: personalInfo.phone,
