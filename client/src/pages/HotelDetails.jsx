@@ -419,7 +419,7 @@ const HotelDetails = () => {
               {hotel.amenities && hotel.amenities.length > 0 && (
                 <div className="mb-6">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Amenities</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3">
                     {hotel.amenities.map((amenity, index) => {
                       const Icon = facilityIcons[amenity];
                       return (
@@ -451,13 +451,13 @@ const HotelDetails = () => {
               {/* Room Features */}
               <div className="border-t border-gray-200 pt-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">What This Place Offers</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {roomCommonData.map((item, index) => (
-                    <div key={index} className="flex gap-3 sm:gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <img src={item.icon} alt={item.title} className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-1">{item.title}</h3>
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{item.description}</p>
+                    <div key={index} className="flex gap-3 p-3 sm:p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <img src={item.icon} alt={item.title} className="w-5 h-5 sm:w-8 sm:h-8 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-xs sm:text-sm text-gray-900 mb-0.5">{item.title}</h3>
+                        <p className="text-[11px] sm:text-xs text-gray-600 line-clamp-2">{item.description}</p>
                       </div>
                     </div>
                   ))}
@@ -915,7 +915,7 @@ const HotelDetails = () => {
         {/* Similar Hotels Section */}
         <div className="mt-16">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Similar Hotels You Might Like</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {similarHotels.map((room) => (
                 <div
                   key={room.id}
@@ -925,7 +925,7 @@ const HotelDetails = () => {
                   }}
                   className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all cursor-pointer overflow-hidden group"
                 >
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-40 sm:h-48 overflow-hidden">
                     <img
                       src={room.images?.[0] || room.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=75'}
                       alt={room.name || room.hotel?.name}
