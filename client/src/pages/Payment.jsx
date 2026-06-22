@@ -959,6 +959,11 @@ const Payment = () => {
                         <p className="text-sm text-gray-600">MTN, Airtel Money or Zamtel Kwacha</p>
                       </div>
                     </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm">
+                      <p className="text-amber-800">
+                        <strong>Amount:</strong> ZK{(calculateTotalCost() * 27).toLocaleString()} (≈ {formatCurrency(calculateTotalCost())} at 1 USD = 27 ZMW)
+                      </p>
+                    </div>
 
                     {momoPolling ? (
                       <div className="text-center py-6">
@@ -1066,7 +1071,7 @@ const Payment = () => {
                   ) : paymentMethod === "mobile_money" ? (
                     <>
                       <FontAwesomeIcon icon={faMobilePhone} className="mr-2" />
-                      Pay with Mobile Money — {formatCurrency(calculateTotalCost())}
+                      Pay with Mobile Money — ZK{(calculateTotalCost() * 27).toLocaleString()}
                     </>
                   ) : paymentMethod === "card" ? (
                     <>

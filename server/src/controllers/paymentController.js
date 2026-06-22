@@ -121,12 +121,16 @@ export const initiateMoMo = async (req, res) => {
   }
 
   try {
+    // MoMo in Zambia processes in ZMW — convert USD to ZMW
+    const USD_TO_ZMW = 27;
+    const momoAmount = Math.round(finalPrice * USD_TO_ZMW * 100) / 100;
+
     const lipilaRes = await initiateMoMoCollection({
       referenceId: booking.id,
-      amount: finalPrice,
-      narration: `Hotel booking - ${hotel.name}`,
+      amount: momoAmount,
+      narration: `Hotel booking - ${hotel.name} ($${finalPrice} USD)`,
       accountNumber: phoneNumber,
-      currency: 'USD',
+      currency: 'ZMW',
       email: booking.userEmail,
       callbackUrl: WEBHOOK_URL,
     });
