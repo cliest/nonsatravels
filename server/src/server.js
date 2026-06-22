@@ -28,7 +28,7 @@ import logger from './utils/logger.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ override: true });
 
 // Initialize express app
 const app = express();
