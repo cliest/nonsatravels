@@ -272,7 +272,7 @@ const HotelDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16">
       <Helmet>
         <title>{hotel.name} - Book Now | Nonsa Travels</title>
         <meta name="description" content={`Book ${hotel.name} in ${hotel.city}, ${hotel.address}. Starting from $${hotel.pricePerNight}/night. ${hotel.amenities?.slice(0, 4).join(', ')}.`} />
