@@ -53,26 +53,21 @@ export const generateInvoicePDF = async (booking, hotel) => {
       // ── Header with logo ──
       const hasLogo = fs.existsSync(LOGO_PATH);
       if (hasLogo) {
-        doc.image(LOGO_PATH, 50, y, { width: 55, height: 55 });
+        doc.image(LOGO_PATH, 50, y, { width: 80, height: 80 });
+      } else {
+        doc.fontSize(24).fillColor(blue).font('Helvetica-Bold')
+          .text('Nonsa Travels', 50, y + 20);
       }
 
-      const headerX = hasLogo ? 115 : 50;
-      doc.fontSize(22).fillColor(blue).font('Helvetica-Bold')
-        .text('Nonsa Travels', headerX, y + 5);
-      doc.fontSize(9).fillColor(gray).font('Helvetica')
-        .text('Premium Hotel Booking Service', headerX, y + 30)
-        .text('Kwacha Street, Chingola, Zambia', headerX, y + 42)
-        .text('+260 970 462 777  |  info@nonsatravels.com', headerX, y + 54);
-
-      // Invoice badge - right side
+      // Invoice details - right side
       doc.fontSize(28).fillColor(blue).font('Helvetica-Bold')
-        .text('INVOICE', 400, y, { align: 'right', width: 145 });
+        .text('INVOICE', 400, y + 5, { align: 'right', width: 145 });
       doc.fontSize(9).fillColor(gray).font('Helvetica')
-        .text(`Invoice #: ${invoiceNumber}`, 350, y + 35, { align: 'right', width: 195 })
-        .text(`Date: ${fmtDate(booking.createdAt || new Date())}`, 350, y + 48, { align: 'right', width: 195 })
-        .text(`Booking ID: ${String(booking._id || booking.id).slice(-8).toUpperCase()}`, 350, y + 61, { align: 'right', width: 195 });
+        .text(`Invoice #: ${invoiceNumber}`, 350, y + 40, { align: 'right', width: 195 })
+        .text(`Date: ${fmtDate(booking.createdAt || new Date())}`, 350, y + 53, { align: 'right', width: 195 })
+        .text(`Booking ID: ${String(booking._id || booking.id).slice(-8).toUpperCase()}`, 350, y + 66, { align: 'right', width: 195 });
 
-      y += 80;
+      y += 90;
 
       // Orange accent line
       doc.rect(50, y, 495, 3).fill(orange);
