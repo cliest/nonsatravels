@@ -207,15 +207,37 @@ export const createBooking = async (req, res) => {
 
     let populatedBooking = formatBooking(booking);
 
+    // Generate invoice
+    let invoicePDF = null;
+    try {
+      if (!populatedBooking.invoiceNumber) {
+        const invoiceNumber = generateInvoiceNumber();
+        const updated = await prisma.booking.update({
+          where: { id: booking.id },
+          data: { invoiceNumber, invoiceGeneratedAt: new Date() },
+          include: bookingInclude,
+        });
+        populatedBooking = formatBooking(updated);
+      }
+      invoicePDF = await generateInvoicePDF(populatedBooking, hotel);
+    } catch (invoiceError) {
+      console.error('Failed to generate invoice:', invoiceError);
+    }
+
     const FRONTEND = process.env.FRONTEND_URL || 'https://nonsatravels.com';
     const paymentLink = `${FRONTEND}/payment?bookingId=${booking.id}`;
+    const attachments = invoicePDF
+      ? [{ filename: `Invoice-${populatedBooking.invoiceNumber}.pdf`, content: invoicePDF }]
+      : [];
 
-    // Send booking confirmation with payment link (no invoice yet)
+    // Send booking confirmation with invoice + payment link
     try {
       const emailContent = enhancedBookingConfirmationEmail(populatedBooking, hotel);
       const paymentCTA = `<div style="text-align:center;margin:24px 0;"><a href="${paymentLink}" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,#2b3990 0%,#1e2a6e 100%);color:white;text-decoration:none;border-radius:10px;font-weight:600;font-size:16px;">Complete Payment</a><p style="margin-top:8px;font-size:13px;color:#6b7280;">Click above to pay securely online</p></div>`;
-      const htmlWithLink = emailContent.html.replace('</div>\n            ${emailFooter()}', `${paymentCTA}</div>\n            \${emailFooter()}`).replace('We look forward to hosting you!', `Complete your payment to confirm your reservation.`);
-      await sendEmail({ to: userEmail, subject: `Booking Created - Complete Your Payment | ${hotel.name}`, html: emailContent.html.includes('We look forward to hosting you') ? emailContent.html.replace('We look forward to hosting you!', `We look forward to hosting you!${paymentCTA}`) : emailContent.html, text: `${emailContent.text}\n\nComplete your payment here: ${paymentLink}` });
+      const htmlWithPayment = emailContent.html.includes('We look forward to hosting you')
+        ? emailContent.html.replace('We look forward to hosting you!', `Please complete your payment to confirm your reservation.${paymentCTA}`)
+        : emailContent.html;
+      await sendEmail({ to: userEmail, subject: `Invoice ${populatedBooking.invoiceNumber} - ${hotel.name} | Nonsa Travels`, html: htmlWithPayment, text: `${emailContent.text}\n\nComplete your payment here: ${paymentLink}`, attachments });
       if (populatedBooking.userPhone) {
         await sendWhatsAppToCustomer(populatedBooking.userPhone, whatsappTemplates.cashBooking(populatedBooking, hotel));
       }
