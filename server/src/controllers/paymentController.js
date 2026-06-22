@@ -8,6 +8,24 @@ import { checkAvailability, reserveRooms } from '../utils/availabilityManager.js
 import { calculateDynamicPrice } from '../utils/dynamicPricing.js';
 
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
+
+// Live USD→ZMW rate with $1 markup, cached for 1 hour
+let cachedZMWRate = { rate: 27, fetchedAt: 0 };
+const getUSDtoZMW = async () => {
+  const ONE_HOUR = 3600000;
+  if (Date.now() - cachedZMWRate.fetchedAt < ONE_HOUR) return cachedZMWRate.rate;
+  try {
+    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const data = await res.json();
+    const liveRate = data.rates?.ZMW || 27;
+    cachedZMWRate = { rate: liveRate + 1, fetchedAt: Date.now() };
+    console.log(`[FX] Live USD→ZMW rate: ${liveRate}, with markup: ${liveRate + 1}`);
+    return cachedZMWRate.rate;
+  } catch {
+    console.warn('[FX] Failed to fetch live rate, using cached:', cachedZMWRate.rate);
+    return cachedZMWRate.rate;
+  }
+};
 const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim();
 const WEBHOOK_URL = `${SERVER_URL}/api/payments/webhook`;
 
@@ -121,8 +139,8 @@ export const initiateMoMo = async (req, res) => {
   }
 
   try {
-    // MoMo in Zambia processes in ZMW — convert USD to ZMW
-    const USD_TO_ZMW = 27;
+    // MoMo in Zambia processes in ZMW — convert using live rate + $1 markup
+    const USD_TO_ZMW = await getUSDtoZMW();
     const momoAmount = Math.round(finalPrice * USD_TO_ZMW * 100) / 100;
 
     const lipilaRes = await initiateMoMoCollection({
@@ -217,6 +235,11 @@ export const initiateCard = async (req, res) => {
     const msg = err.response?.data || err.message;
     return res.status(502).json({ success: false, message: 'Card payment initiation failed', error: msg });
   }
+};
+
+export const getExchangeRate = async (req, res) => {
+  const rate = await getUSDtoZMW();
+  res.status(200).json({ success: true, data: { USD_TO_ZMW: rate } });
 };
 
 export const checkStatus = async (req, res) => {

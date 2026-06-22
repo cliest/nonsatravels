@@ -22,6 +22,7 @@ import {
 import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { bookingAPI, promoAPI } from "../services/api";
 import { paymentAPI } from "../services/paymentAPI";
+import api from "../services/api";
 import { toast } from "../utils/toast";
 import { useAuth, useUser } from "../context/AuthContext";
 
@@ -36,6 +37,7 @@ const Payment = () => {
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [createdBooking, setCreatedBooking] = useState(null);
+  const [zmwRate, setZmwRate] = useState(27);
   const [paymentMethod, setPaymentMethod] = useState("mobile_money");
   const [processing, setProcessing] = useState(false);
   const [momoPhone, setMomoPhone] = useState("");
@@ -65,6 +67,13 @@ const Payment = () => {
     extraBed: false,
     breakfast: false,
   });
+
+  // Fetch live exchange rate
+  useEffect(() => {
+    api.get('/payments/exchange-rate').then(res => {
+      if (res.data?.data?.USD_TO_ZMW) setZmwRate(res.data.data.USD_TO_ZMW);
+    }).catch(() => {});
+  }, []);
 
   // Fetch booking from URL param (email payment link)
   useEffect(() => {
@@ -961,7 +970,7 @@ const Payment = () => {
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm">
                       <p className="text-amber-800">
-                        <strong>Amount:</strong> ZK{(calculateTotalCost() * 27).toLocaleString()} (≈ {formatCurrency(calculateTotalCost())} at 1 USD = 27 ZMW)
+                        <strong>Amount:</strong> ZK{(calculateTotalCost() * zmwRate).toLocaleString()} (≈ {formatCurrency(calculateTotalCost())} at 1 USD = {zmwRate.toFixed(1)} ZMW)
                       </p>
                     </div>
 
@@ -1071,7 +1080,7 @@ const Payment = () => {
                   ) : paymentMethod === "mobile_money" ? (
                     <>
                       <FontAwesomeIcon icon={faMobilePhone} className="mr-2" />
-                      Pay with Mobile Money — ZK{(calculateTotalCost() * 27).toLocaleString()}
+                      Pay with Mobile Money — ZK{(calculateTotalCost() * zmwRate).toLocaleString()}
                     </>
                   ) : paymentMethod === "card" ? (
                     <>
