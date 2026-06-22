@@ -53,7 +53,7 @@ export const generateInvoicePDF = async (booking, hotel) => {
       // ── Header with logo ──
       const hasLogo = fs.existsSync(LOGO_PATH);
       if (hasLogo) {
-        doc.image(LOGO_PATH, 50, y, { width: 80, height: 80 });
+        doc.image(LOGO_PATH, 50, y, { fit: [120, 80] });
       } else {
         doc.fontSize(24).fillColor(blue).font('Helvetica-Bold')
           .text('Nonsa Travels', 50, y + 20);
