@@ -19,12 +19,18 @@ const isInPeakSeason = (hotel, checkInDate, checkOutDate) => {
   return { inPeakSeason: false };
 };
 
-export const calculateDynamicPrice = async (hotelId, checkInDate, checkOutDate) => {
+export const calculateDynamicPrice = async (hotelId, checkInDate, checkOutDate, roomTypeId = null) => {
   try {
     const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
     if (!hotel) throw new Error('Hotel not found');
 
-    const basePrice = hotel.basePricePerNight || hotel.pricePerNight;
+    let basePrice = hotel.basePricePerNight || hotel.pricePerNight;
+
+    if (roomTypeId) {
+      const rt = await prisma.roomType.findUnique({ where: { id: roomTypeId } });
+      if (rt && rt.hotelId === hotelId) basePrice = rt.pricePerNight;
+    }
+
     if (!basePrice) throw new Error('Hotel price not configured');
 
     const dynamicPricing = hotel.dynamicPricing || {};

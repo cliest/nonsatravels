@@ -279,6 +279,7 @@ const Payment = () => {
           paymentStatus: "pending",
           status: "pending_payment",
           ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
+          ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
         };
 
         const response = await bookingAPI.create(bookingPayload);
@@ -317,6 +318,7 @@ const Payment = () => {
           roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
           phoneNumber: momoPhone.replace(/\s/g, ""),
           ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
+          ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
         });
 
         const { referenceId } = response.data.data;
@@ -351,6 +353,7 @@ const Payment = () => {
             address: personalInfo.address || "N/A",
           },
           ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
+          ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
         });
 
         const { checkoutUrl } = response.data.data;

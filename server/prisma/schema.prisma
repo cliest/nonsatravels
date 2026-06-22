@@ -134,7 +134,7 @@ model Hotel {
   address           String
   city              String
   contact           String?
-  roomType          String
+  roomType          String   @default("Double Bed")
   pricePerNight     Float
   totalRooms        Int      @default(10)
   basePricePerNight Float?
@@ -148,9 +148,30 @@ model Hotel {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  roomTypes        RoomType[]
   bookings         Booking[]
   reviews          Review[]
   tripDestinations TripDestination[]
+}
+
+model RoomType {
+  id            String   @id @default(cuid())
+  hotelId       String
+  name          String
+  description   String?
+  pricePerNight Float
+  roomCount     Int      @default(1)
+  maxGuests     Int      @default(2)
+  amenities     String[]
+  images        String[]
+  isAvailable   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([hotelId])
 }
 
 model Booking {
@@ -172,6 +193,8 @@ model Booking {
   userPhone           String?
   specialRequests     String?
   roomPreferences     String?
+  roomTypeId          String?
+  roomTypeName        String?
   bankDetails         Json?
   bankDetailsSentAt   DateTime?
   paymentConfirmedAt  DateTime?
@@ -185,7 +208,8 @@ model Booking {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  hotel Hotel @relation(fields: [hotelId], references: [id])
+  hotel        Hotel     @relation(fields: [hotelId], references: [id])
+  selectedRoom RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
 }
 
 model Review {

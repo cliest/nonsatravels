@@ -30,7 +30,7 @@ const formatBooking = (booking) => {
   return { ...rest, _id: booking.id, hotelId: hotel ?? booking.hotelId };
 };
 
-const bookingInclude = { hotel: true };
+const bookingInclude = { hotel: { include: { roomTypes: true } }, selectedRoom: true };
 
 export const getBookings = async (req, res) => {
   try {
@@ -88,6 +88,7 @@ export const createBooking = async (req, res) => {
       hotelId, checkInDate, checkOutDate, guests, paymentId, paymentMethod,
       paymentStatus, roomsRequested, referralCode, promoCode, userName: guestName,
       userEmail: guestEmail, userPhone, specialRequests, roomPreferences, totalPrice,
+      roomTypeId, roomTypeName,
     } = req.body;
 
     const userId = req.user?.id || null;
@@ -116,7 +117,7 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate);
+    const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate, roomTypeId || null);
     let finalPrice = pricing.totalPrice || totalPrice;
     let discountApplied = null;
 
@@ -185,6 +186,7 @@ export const createBooking = async (req, res) => {
         pricingDetails: pricing.breakdown,
         referralDiscount: discountApplied,
         ...(promoCode && promoDiscount > 0 ? { promoCode: promoCode.toUpperCase(), promoDiscount } : {}),
+        ...(roomTypeId ? { roomTypeId, roomTypeName: roomTypeName || null } : {}),
       },
       include: bookingInclude,
     });

@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faInfoCircle, faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 
-const DynamicPriceDisplay = ({ hotelId, checkIn, checkOut, roomsNeeded = 1 }) => {
+const DynamicPriceDisplay = ({ hotelId, checkIn, checkOut, roomsNeeded = 1, roomTypeId }) => {
   const [pricing, setPricing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,16 +14,17 @@ const DynamicPriceDisplay = ({ hotelId, checkIn, checkOut, roomsNeeded = 1 }) =>
     if (hotelId && checkIn && checkOut) {
       fetchDynamicPricing();
     }
-  }, [hotelId, checkIn, checkOut, roomsNeeded]);
+  }, [hotelId, checkIn, checkOut, roomsNeeded, roomTypeId]);
 
   const fetchDynamicPricing = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get(
-        `/availability/pricing/${hotelId}?checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&roomsNeeded=${roomsNeeded}`
-      );
+      let url = `/availability/pricing/${hotelId}?checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&roomsNeeded=${roomsNeeded}`;
+      if (roomTypeId) url += `&roomTypeId=${roomTypeId}`;
+
+      const response = await api.get(url);
 
       if (response.data.success) {
         setPricing(response.data.data);

@@ -80,7 +80,7 @@ router.get('/calendar/:hotelId', async (req, res) => {
 // @access  Public
 router.get('/pricing/:hotelId', async (req, res) => {
   try {
-    const { checkIn, checkOut, checkInDate, checkOutDate } = req.query;
+    const { checkIn, checkOut, checkInDate, checkOutDate, roomTypeId } = req.query;
     const checkInParam = checkIn || checkInDate;
     const checkOutParam = checkOut || checkOutDate;
 
@@ -94,7 +94,8 @@ router.get('/pricing/:hotelId', async (req, res) => {
     const pricing = await calculateDynamicPrice(
       req.params.hotelId,
       new Date(checkInParam),
-      new Date(checkOutParam)
+      new Date(checkOutParam),
+      roomTypeId || null
     );
 
     res.status(200).json({

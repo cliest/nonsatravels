@@ -46,6 +46,7 @@ const HotelDetails = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [selectedRoomType, setSelectedRoomType] = useState(null);
 
   useEffect(() => {
     const fetchHotelDetails = async () => {
@@ -58,6 +59,9 @@ const HotelDetails = () => {
         ]);
         
         setHotel(hotelRes.data.data);
+        if (hotelRes.data.data.roomTypes?.length > 0) {
+          setSelectedRoomType(hotelRes.data.data.roomTypes[0]);
+        }
         setReviews(reviewsRes.data.data);
         
         // Filter similar hotels (same city or similar price range)
@@ -105,7 +109,8 @@ const HotelDetails = () => {
         hotel.id,
         checkInDate.toISOString(),
         checkOutDate.toISOString(),
-        guests
+        guests,
+        selectedRoomType?.id
       );
       const pricingData = pricingRes.data;
 
@@ -129,6 +134,8 @@ const HotelDetails = () => {
         pricePerNight: pricingData.data.pricePerNight,
         userName: user?.fullName || user?.username || "",
         userEmail: user?.email || "",
+        roomTypeId: selectedRoomType?.id || null,
+        roomTypeName: selectedRoomType?.name || hotel.roomType,
       };
 
       // Navigate to payment page with booking data
@@ -336,7 +343,7 @@ const HotelDetails = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                   <div className="flex-1">
                     <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs sm:text-sm font-medium rounded-full mb-3">
-                      {hotel.roomType}
+                      {hotel.roomTypes?.length || 0} Room Type{hotel.roomTypes?.length !== 1 ? 's' : ''} Available
                     </span>
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 gradient-text">
                       {hotel.name}
@@ -431,7 +438,7 @@ const HotelDetails = () => {
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">About This Stay</h2>
                 <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
                   Experience luxury and comfort at {hotel.name}, located in the heart of {hotel.city}. 
-                  Our {hotel.roomType.toLowerCase()} offers a perfect blend of modern amenities and classic elegance. 
+                  Our {(selectedRoomType?.name || hotel.roomType || 'room').toLowerCase()} offers a perfect blend of modern amenities and classic elegance. 
                   Whether you're traveling for business or leisure, our dedicated staff ensures your stay is memorable 
                   and exceeds your expectations. Enjoy world-class facilities, exceptional service, and a prime location 
                   that puts you close to all major attractions.
@@ -442,6 +449,44 @@ const HotelDetails = () => {
 
           {/* Right Section - Booking Card */}
           <div className="lg:col-span-1">
+            {/* Room Type Selection */}
+            {hotel.roomTypes && hotel.roomTypes.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 mb-4 card-hover">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Select Room Type</h3>
+                <div className="space-y-2.5">
+                  {hotel.roomTypes.map((rt) => (
+                    <button
+                      key={rt.id}
+                      type="button"
+                      onClick={() => setSelectedRoomType(rt)}
+                      className={`w-full text-left p-3.5 rounded-xl border-2 transition-all ${
+                        selectedRoomType?.id === rt.id
+                          ? 'border-primary bg-primary/5 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900 text-sm">{rt.name}</p>
+                            {selectedRoomType?.id === rt.id && (
+                              <FontAwesomeIcon icon={faCheck} className="text-primary text-xs" />
+                            )}
+                          </div>
+                          {rt.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{rt.description}</p>}
+                          <p className="text-xs text-gray-400 mt-0.5">Up to {rt.maxGuests} guests · {rt.roomCount} room{rt.roomCount !== 1 ? 's' : ''}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <p className="text-lg font-bold text-primary">${rt.pricePerNight}</p>
+                          <p className="text-[10px] text-gray-500">per night</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6 lg:sticky lg:top-24 slide-in-right card-hover">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Reserve Your Stay</h3>
               
@@ -501,6 +546,7 @@ const HotelDetails = () => {
                       checkIn={checkInDate}
                       checkOut={checkOutDate}
                       roomsNeeded={guests}
+                      roomTypeId={selectedRoomType?.id}
                     />
                   </div>
                 )}

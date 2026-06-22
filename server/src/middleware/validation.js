@@ -66,6 +66,8 @@ export const bookingSchema = {
     status: Joi.string().valid('pending_payment', 'payment_confirmed', 'confirmed', 'completed', 'cancelled', 'rejected').default('pending_payment'),
     referralCode: Joi.string().allow('', null),
     promoCode: Joi.string().allow('', null),
+    roomTypeId: Joi.string().allow('', null),
+    roomTypeName: Joi.string().allow('', null),
   }),
   updateStatus: Joi.object({
     status: Joi.string().required().valid(

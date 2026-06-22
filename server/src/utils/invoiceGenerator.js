@@ -179,7 +179,7 @@ export const generateInvoicePDF = async (booking, hotel) => {
         { label: 'Check-out Date:', value: formatDate(booking.checkOutDate) },
         { label: 'Number of Nights:', value: `${nights} ${nights === 1 ? 'night' : 'nights'}` },
         { label: 'Number of Guests:', value: booking.guests.toString() },
-        { label: 'Room Type:', value: booking.roomPreferences || 'Standard' },
+        { label: 'Room Type:', value: booking.roomTypeName || booking.roomPreferences || 'Standard' },
       ];
 
       doc.fontSize(10).font('Helvetica');
@@ -473,7 +473,7 @@ export const generateInvoiceHTML = (booking, hotel) => {
         </tr>
         <tr>
           <td>Room Type:</td>
-          <td><strong>${booking.roomPreferences || 'Standard'}</strong></td>
+          <td><strong>${booking.roomTypeName || booking.roomPreferences || 'Standard'}</strong></td>
         </tr>
       </table>
     </div>

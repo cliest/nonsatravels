@@ -74,6 +74,7 @@ const AdminDashboard = () => {
   const [hotels, setHotels] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const defaultRoomType = { name: "Double Bed", pricePerNight: "", roomCount: "1", maxGuests: "2", description: "" };
   const [newHotel, setNewHotel] = useState({
     hotelName: "",
     address: "",
@@ -89,6 +90,7 @@ const AdminDashboard = () => {
     peakSeasonMultiplier: "1.5",
     lowOccupancyDiscount: "0.9",
     highDemandMultiplier: "1.3",
+    roomTypes: [{ ...defaultRoomType }],
   });
   
   // Homepage Content Management
@@ -1003,6 +1005,15 @@ const AdminDashboard = () => {
       peakSeasonMultiplier: (hotel.dynamicPricing?.peakSeasonMultiplier || 1.5).toString(),
       lowOccupancyDiscount: (hotel.dynamicPricing?.lowOccupancyDiscount || 0.9).toString(),
       highDemandMultiplier: (hotel.dynamicPricing?.highDemandMultiplier || 1.3).toString(),
+      roomTypes: hotel.roomTypes?.length > 0
+        ? hotel.roomTypes.map(rt => ({
+            name: rt.name,
+            pricePerNight: rt.pricePerNight.toString(),
+            roomCount: rt.roomCount.toString(),
+            maxGuests: rt.maxGuests.toString(),
+            description: rt.description || "",
+          }))
+        : [{ name: hotel.roomType, pricePerNight: hotel.pricePerNight.toString(), roomCount: (hotel.totalRooms || 10).toString(), maxGuests: "2", description: "" }],
     });
     setShowEditHotelModal(true);
   };
@@ -1011,8 +1022,13 @@ const AdminDashboard = () => {
   const handleUpdateHotel = async (e) => {
     e.preventDefault();
 
-    if (!newHotel.hotelName || !newHotel.address || !newHotel.city || !newHotel.pricePerNight) {
+    const validRoomTypes = (newHotel.roomTypes || []).filter(rt => rt.name && rt.pricePerNight);
+    if (!newHotel.hotelName || !newHotel.address || !newHotel.city) {
       toast.warning("Please fill in all required fields");
+      return;
+    }
+    if (validRoomTypes.length === 0) {
+      toast.warning("Please add at least one room type with a price");
       return;
     }
 
@@ -1028,15 +1044,25 @@ const AdminDashboard = () => {
     }
 
     try {
+      const roomTypesPayload = validRoomTypes.map(rt => ({
+        name: rt.name,
+        description: rt.description || null,
+        pricePerNight: parseFloat(rt.pricePerNight),
+        roomCount: parseInt(rt.roomCount) || 1,
+        maxGuests: parseInt(rt.maxGuests) || 2,
+      }));
+      const minPrice = Math.min(...roomTypesPayload.map(rt => rt.pricePerNight));
+      const totalRooms = roomTypesPayload.reduce((s, rt) => s + rt.roomCount, 0);
+
       const updatedData = {
         name: newHotel.hotelName,
         address: newHotel.address,
         city: newHotel.city,
         contact: newHotel.contact,
-        roomType: newHotel.roomType,
-        pricePerNight: parseFloat(newHotel.pricePerNight),
-        basePricePerNight: parseFloat(newHotel.pricePerNight),
-        totalRooms: parseInt(newHotel.totalRooms),
+        roomType: roomTypesPayload[0].name,
+        pricePerNight: minPrice,
+        basePricePerNight: minPrice,
+        totalRooms,
         rating: parseFloat(newHotel.rating),
         amenities: newHotel.amenities,
         images: validImages,
@@ -1046,6 +1072,7 @@ const AdminDashboard = () => {
           lowOccupancyDiscount: parseFloat(newHotel.lowOccupancyDiscount),
           highDemandMultiplier: parseFloat(newHotel.highDemandMultiplier),
         },
+        roomTypes: roomTypesPayload,
       };
 
       const response = await hotelAPI.update(editingHotel.id, updatedData);
@@ -1065,6 +1092,7 @@ const AdminDashboard = () => {
         rating: "4.5",
         amenities: [],
         imageUrls: ["", "", "", ""],
+        roomTypes: [{ ...defaultRoomType }],
       });
 
       setShowEditHotelModal(false);
@@ -1217,9 +1245,14 @@ const AdminDashboard = () => {
   const handleAddHotel = async (e) => {
     e.preventDefault();
 
+    const validRoomTypes = (newHotel.roomTypes || []).filter(rt => rt.name && rt.pricePerNight);
     // Validate form
-    if (!newHotel.hotelName || !newHotel.address || !newHotel.city || !newHotel.pricePerNight) {
+    if (!newHotel.hotelName || !newHotel.address || !newHotel.city) {
       toast.warning("Please fill in all required fields");
+      return;
+    }
+    if (validRoomTypes.length === 0) {
+      toast.warning("Please add at least one room type with a price");
       return;
     }
 
@@ -1236,16 +1269,25 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Create new hotel object
+      const roomTypesPayload = validRoomTypes.map(rt => ({
+        name: rt.name,
+        description: rt.description || null,
+        pricePerNight: parseFloat(rt.pricePerNight),
+        roomCount: parseInt(rt.roomCount) || 1,
+        maxGuests: parseInt(rt.maxGuests) || 2,
+      }));
+      const minPrice = Math.min(...roomTypesPayload.map(rt => rt.pricePerNight));
+      const totalRooms = roomTypesPayload.reduce((s, rt) => s + rt.roomCount, 0);
+
       const hotelData = {
         name: newHotel.hotelName,
         address: newHotel.address,
         city: newHotel.city,
         contact: newHotel.contact,
-        roomType: newHotel.roomType,
-        pricePerNight: parseFloat(newHotel.pricePerNight),
-        basePricePerNight: parseFloat(newHotel.pricePerNight),
-        totalRooms: parseInt(newHotel.totalRooms),
+        roomType: roomTypesPayload[0].name,
+        pricePerNight: minPrice,
+        basePricePerNight: minPrice,
+        totalRooms,
         rating: parseFloat(newHotel.rating),
         amenities: newHotel.amenities,
         images: validImages,
@@ -1256,6 +1298,7 @@ const AdminDashboard = () => {
           lowOccupancyDiscount: parseFloat(newHotel.lowOccupancyDiscount),
           highDemandMultiplier: parseFloat(newHotel.highDemandMultiplier),
         },
+        roomTypes: roomTypesPayload,
       };
 
       const response = await hotelAPI.create(hotelData);
@@ -1277,6 +1320,7 @@ const AdminDashboard = () => {
         peakSeasonMultiplier: "1.5",
         lowOccupancyDiscount: "0.9",
         highDemandMultiplier: "1.3",
+        roomTypes: [{ ...defaultRoomType }],
       });
 
       // Close modal
@@ -3590,61 +3634,88 @@ const AddHotelModal = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Room Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="roomType"
-                  value={newHotel.roomType}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                >
-                  {ROOM_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price Per Night <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    name="pricePerNight"
-                    value={newHotel.pricePerNight}
-                    onChange={handleInputChange}
-                    placeholder="199"
-                    min="0"
-                    step="1"
-                    required
-                    className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                  />
+          {/* Room Types */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Room Types <span className="text-red-500">*</span></h3>
+              <button
+                type="button"
+                onClick={() => setNewHotel(prev => ({ ...prev, roomTypes: [...(prev.roomTypes || []), { name: "Single Bed", pricePerNight: "", roomCount: "1", maxGuests: "2", description: "" }] }))}
+                className="text-sm text-primary hover:text-accent font-medium"
+              >
+                + Add Room Type
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(newHotel.roomTypes || []).map((rt, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
+                  {(newHotel.roomTypes || []).length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setNewHotel(prev => ({ ...prev, roomTypes: prev.roomTypes.filter((_, i) => i !== idx) }))}
+                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full text-red-400 hover:bg-red-100 hover:text-red-600 text-xs"
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
+                      <select
+                        value={rt.name}
+                        onChange={(e) => { const arr = [...newHotel.roomTypes]; arr[idx] = { ...arr[idx], name: e.target.value }; setNewHotel(prev => ({ ...prev, roomTypes: arr })); }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      >
+                        {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Price/Night *</label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                        <input
+                          type="number"
+                          value={rt.pricePerNight}
+                          onChange={(e) => { const arr = [...newHotel.roomTypes]; arr[idx] = { ...arr[idx], pricePerNight: e.target.value }; setNewHotel(prev => ({ ...prev, roomTypes: arr })); }}
+                          placeholder="99"
+                          min="0"
+                          required
+                          className="w-full pl-6 pr-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Rooms</label>
+                      <input
+                        type="number"
+                        value={rt.roomCount}
+                        onChange={(e) => { const arr = [...newHotel.roomTypes]; arr[idx] = { ...arr[idx], roomCount: e.target.value }; setNewHotel(prev => ({ ...prev, roomTypes: arr })); }}
+                        min="1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Max Guests</label>
+                      <input
+                        type="number"
+                        value={rt.maxGuests}
+                        onChange={(e) => { const arr = [...newHotel.roomTypes]; arr[idx] = { ...arr[idx], maxGuests: e.target.value }; setNewHotel(prev => ({ ...prev, roomTypes: arr })); }}
+                        min="1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Rooms <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="totalRooms"
-                  value={newHotel.totalRooms}
-                  onChange={handleInputChange}
-                  placeholder="10"
-                  min="1"
-                  max="100"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                />
-              </div>
+          {/* Continued */}
+          <div>
+            <div className="grid md:grid-cols-2 gap-4">
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

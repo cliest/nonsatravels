@@ -192,13 +192,13 @@ export const loyaltyAPI = {
 
 // Availability API
 export const availabilityAPI = {
-  check: (hotelId, checkIn, checkOut, roomsNeeded) => 
-    api.get(`/availability/check/${hotelId}`, { 
-      params: { checkIn, checkOut, roomsNeeded } 
+  check: (hotelId, checkIn, checkOut, roomsNeeded) =>
+    api.get(`/availability/check/${hotelId}`, {
+      params: { checkIn, checkOut, roomsNeeded }
     }),
-  getPricing: (hotelId, checkIn, checkOut, roomsNeeded) => 
-    api.get(`/availability/pricing/${hotelId}`, { 
-      params: { checkIn, checkOut, roomsNeeded } 
+  getPricing: (hotelId, checkIn, checkOut, roomsNeeded, roomTypeId) =>
+    api.get(`/availability/pricing/${hotelId}`, {
+      params: { checkIn, checkOut, roomsNeeded, ...(roomTypeId ? { roomTypeId } : {}) }
     }),
 };
 
