@@ -221,6 +221,7 @@ model Review {
   rating     Float
   comment    String
   helpful    Int      @default(0)
+  isApproved Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

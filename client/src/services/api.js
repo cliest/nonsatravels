@@ -132,10 +132,13 @@ export const bookingAPI = {
 // Review API
 export const reviewAPI = {
   getByHotel: (hotelId) => api.get(`/reviews/hotel/${hotelId}`),
+  getAll: (params) => api.get('/reviews/admin/all', { params }),
   create: (data) => api.post('/reviews', data),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
   markHelpful: (id) => api.patch(`/reviews/${id}/helpful`),
+  approve: (id) => api.patch(`/reviews/${id}/approve`),
+  reject: (id) => api.delete(`/reviews/${id}/reject`),
 };
 
 // Offer API

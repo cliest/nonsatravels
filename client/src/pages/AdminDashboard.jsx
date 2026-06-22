@@ -40,7 +40,7 @@ import {
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -188,6 +188,14 @@ const AdminDashboard = () => {
   const [showSendNewsletterModal, setShowSendNewsletterModal] = useState(false);
   const [newsletterForm, setNewsletterForm] = useState({ subject: "", body: "" });
   const [sendingNewsletter, setSendingNewsletter] = useState(false);
+
+  // Reviews Moderation
+  const [adminReviews, setAdminReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState("pending");
+
+  // Analytics date range
+  const [analyticsRange, setAnalyticsRange] = useState("year");
 
   // Available amenities
   const availableAmenities = [
@@ -593,6 +601,40 @@ const AdminDashboard = () => {
     }
   };
 
+  // Reviews Moderation Handlers
+  const fetchAdminReviews = async (filter = reviewFilter) => {
+    setReviewsLoading(true);
+    try {
+      const res = await reviewAPI.getAll({ status: filter === 'all' ? undefined : filter });
+      if (res.data.success) setAdminReviews(res.data.data);
+    } catch {
+      toast.error("Failed to load reviews");
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleApproveReview = async (id) => {
+    try {
+      await reviewAPI.approve(id);
+      toast.success("Review approved");
+      fetchAdminReviews();
+    } catch {
+      toast.error("Failed to approve review");
+    }
+  };
+
+  const handleRejectReview = async (id) => {
+    if (!window.confirm("Reject and delete this review?")) return;
+    try {
+      await reviewAPI.reject(id);
+      toast.success("Review rejected");
+      fetchAdminReviews();
+    } catch {
+      toast.error("Failed to reject review");
+    }
+  };
+
   // Calculate dashboard stats
   // Only count revenue from confirmed and completed bookings
   const confirmedStatuses = ['confirmed', 'completed', 'payment_confirmed'];
@@ -616,7 +658,16 @@ const AdminDashboard = () => {
     ).length,
   };
 
-  // Generate real booking trends data from actual bookings
+  const filterBookingsByRange = (list) => {
+    if (analyticsRange === 'all') return list;
+    const now = new Date();
+    let cutoff;
+    if (analyticsRange === 'month') cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (analyticsRange === 'quarter') cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    else cutoff = new Date(now.getFullYear(), 0, 1);
+    return list.filter(b => new Date(b.createdAt) >= cutoff);
+  };
+
   const generateBookingTrendsData = () => {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const currentYear = new Date().getFullYear();
@@ -638,19 +689,20 @@ const AdminDashboard = () => {
   // Generate revenue by room type from actual bookings
   const generateRevenueData = () => {
     const roomTypes = {};
-    
-    bookings.forEach(booking => {
-      const roomType = booking.hotelId?.roomType || 'Unknown';
+    const filtered = filterBookingsByRange(bookings);
+
+    filtered.forEach(booking => {
+      const roomType = booking.roomTypeName || booking.hotelId?.roomType || 'Standard';
       if (!roomTypes[roomType]) {
         roomTypes[roomType] = { revenue: 0, bookings: 0 };
       }
       roomTypes[roomType].revenue += booking.totalPrice;
       roomTypes[roomType].bookings += 1;
     });
-    
+
     return Object.entries(roomTypes).map(([category, data]) => ({
       category,
-      revenue: data.revenue,
+      revenue: Math.round(data.revenue),
       bookings: data.bookings,
     }));
   };
@@ -1383,6 +1435,7 @@ const AdminDashboard = () => {
             <SidebarNavItem icon={faNewspaper} label="Newsletter" active={activeTab === "newsletter"} onClick={() => { setActiveTab("newsletter"); if (subscribers.length === 0) fetchSubscribers(); setSidebarOpen(false); }} />
 
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Community</p>
+            <SidebarNavItem icon={faStar} label="Reviews" active={activeTab === "reviews"} onClick={() => { setActiveTab("reviews"); fetchAdminReviews(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faComments} label="Chat Support" active={activeTab === "chat"} onClick={() => { setActiveTab("chat"); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faUsers} label="Users" active={activeTab === "users"} onClick={() => { setActiveTab("users"); if (users.length === 0) fetchUsers(); setSidebarOpen(false); }} />
           </div>
@@ -1427,6 +1480,7 @@ const AdminDashboard = () => {
                activeTab === "users" ? "Users" :
                activeTab === "blog" ? "Blog Posts" :
                activeTab === "newsletter" ? "Newsletter" :
+               activeTab === "reviews" ? "Reviews" :
                "Promo Codes"}
             </h1>
           </div>
@@ -1549,7 +1603,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Bookings - Desktop Table */}
-                <div className="hidden lg:block overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 text-left">
@@ -1591,7 +1645,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Bookings - Mobile Cards */}
-                <div className="lg:hidden space-y-4">
+                <div className="md:hidden space-y-4">
                   {filteredBookings.map((booking) => (
                     <BookingCard
                       key={booking.id}
@@ -1803,9 +1857,15 @@ const AdminDashboard = () => {
             {/* Analytics Tab */}
             {activeTab === "analytics" && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Analytics & Reports
-                </h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <h2 className="text-2xl font-bold text-gray-900">Analytics & Reports</h2>
+                  <select value={analyticsRange} onChange={(e) => setAnalyticsRange(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    <option value="month">This Month</option>
+                    <option value="quarter">Last 3 Months</option>
+                    <option value="year">This Year</option>
+                    <option value="all">All Time</option>
+                  </select>
+                </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Booking Trends Chart */}
@@ -1981,33 +2041,37 @@ const AdminDashboard = () => {
 
                 {/* Additional Stats Row */}
                 <div className="grid md:grid-cols-3 gap-6 mt-6">
-                  <div className="bg-blue-50 rounded-xl p-6 text-white">
+                  <div className="bg-blue-50 rounded-xl p-6 text-gray-900">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-lg font-semibold">Average Revenue</h4>
-                      <FontAwesomeIcon icon={faDollarSign} className="text-2xl opacity-80" />
+                      <FontAwesomeIcon icon={faDollarSign} className="text-2xl text-blue-600" />
                     </div>
                     <p className="text-3xl font-bold mb-1">
                       ${(bookingTrendsData.reduce((sum, item) => sum + item.revenue, 0) / bookingTrendsData.length).toFixed(0)}
                     </p>
-                    <p className="text-sm opacity-90">per month</p>
+                    <p className="text-sm text-gray-600">per month</p>
                   </div>
 
-                  <div className="bg-green-50 rounded-xl p-6 text-white">
+                  <div className="bg-green-50 rounded-xl p-6 text-gray-900">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-lg font-semibold">Occupancy Rate</h4>
-                      <FontAwesomeIcon icon={faHotel} className="text-2xl opacity-80" />
+                      <FontAwesomeIcon icon={faHotel} className="text-2xl text-green-600" />
                     </div>
-                    <p className="text-3xl font-bold mb-1">82%</p>
-                    <p className="text-sm opacity-90">current month</p>
+                    <p className="text-3xl font-bold mb-1">
+                      {hotels.length > 0 ? Math.round((bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length / Math.max(1, hotels.reduce((s, h) => s + (h.totalRooms || 10), 0))) * 100) : 0}%
+                    </p>
+                    <p className="text-sm text-gray-600">confirmed/completed vs total rooms</p>
                   </div>
 
-                  <div className="bg-purple-50 rounded-xl p-6 text-white">
+                  <div className="bg-purple-50 rounded-xl p-6 text-gray-900">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-lg font-semibold">Guest Satisfaction</h4>
-                      <FontAwesomeIcon icon={faUsers} className="text-2xl opacity-80" />
+                      <FontAwesomeIcon icon={faUsers} className="text-2xl text-purple-600" />
                     </div>
-                    <p className="text-3xl font-bold mb-1">4.7/5.0</p>
-                    <p className="text-sm opacity-90">average rating</p>
+                    <p className="text-3xl font-bold mb-1">
+                      {hotels.length > 0 ? (hotels.reduce((s, h) => s + h.rating, 0) / hotels.length).toFixed(1) : '0'}/5.0
+                    </p>
+                    <p className="text-sm text-gray-600">average hotel rating</p>
                   </div>
                 </div>
               </div>
@@ -2210,8 +2274,8 @@ const AdminDashboard = () => {
                 ) : (
                   <>
                     {/* Users Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <table className="w-full min-w-[600px]">
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
@@ -2524,6 +2588,75 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* Reviews Moderation Tab */}
+            {activeTab === "reviews" && (
+              <div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Reviews Moderation</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">{adminReviews.filter(r => !r.isApproved).length} pending approval</p>
+                  </div>
+                  <select
+                    value={reviewFilter}
+                    onChange={(e) => { setReviewFilter(e.target.value); fetchAdminReviews(e.target.value); }}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="all">All</option>
+                  </select>
+                </div>
+
+                {reviewsLoading ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                ) : adminReviews.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <FontAwesomeIcon icon={faStar} className="text-5xl mb-3 text-gray-200" />
+                    <p className="font-medium">No {reviewFilter} reviews</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {adminReviews.map((review) => (
+                      <div key={review.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-semibold text-gray-900 text-sm">{review.userName}</span>
+                              <span className="text-xs text-gray-400">·</span>
+                              <span className="text-xs text-gray-500">{review.hotel?.name || 'Unknown hotel'}</span>
+                              <span className="text-xs text-gray-400">·</span>
+                              <span className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                              {[...Array(5)].map((_, i) => (
+                                <FontAwesomeIcon key={i} icon={faStar} className={`text-xs ${i < review.rating ? 'text-yellow-400' : 'text-gray-200'}`} />
+                              ))}
+                              <span className="text-xs text-gray-500 ml-1">{review.rating}/5</span>
+                            </div>
+                            <p className="text-sm text-gray-700">{review.comment}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {review.isApproved ? (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Approved</span>
+                            ) : (
+                              <>
+                                <button onClick={() => handleApproveReview(review.id)} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors">
+                                  Approve
+                                </button>
+                                <button onClick={() => handleRejectReview(review.id)} className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors">
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
