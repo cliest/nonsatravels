@@ -310,6 +310,9 @@ const Payment = () => {
         status: "pending_payment",
         ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
         ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
+        additionalServices: Object.entries(additionalServices)
+          .filter(([, v]) => v)
+          .map(([k]) => ({ name: k, cost: serviceCosts[k] })),
       };
 
       const response = await bookingAPI.create(bookingPayload);

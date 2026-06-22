@@ -88,7 +88,7 @@ export const createBooking = async (req, res) => {
       hotelId, checkInDate, checkOutDate, guests, paymentId, paymentMethod,
       paymentStatus, roomsRequested, referralCode, promoCode, userName: guestName,
       userEmail: guestEmail, userPhone, specialRequests, roomPreferences, totalPrice,
-      roomTypeId, roomTypeName,
+      roomTypeId, roomTypeName, additionalServices,
     } = req.body;
 
     const userId = req.user?.id || null;
@@ -187,6 +187,7 @@ export const createBooking = async (req, res) => {
         referralDiscount: discountApplied,
         ...(promoCode && promoDiscount > 0 ? { promoCode: promoCode.toUpperCase(), promoDiscount } : {}),
         ...(roomTypeId ? { roomTypeId, roomTypeName: roomTypeName || null } : {}),
+        ...(additionalServices?.length ? { additionalServices } : {}),
       },
       include: bookingInclude,
     });

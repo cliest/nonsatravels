@@ -149,6 +149,26 @@ export const generateInvoicePDF = async (booking, hotel) => {
         .text(fmt(pricePerNight * nights), 445, y + 6, { width: 90, align: 'right' });
       y += 22;
 
+      // Additional services
+      const services = Array.isArray(booking.additionalServices) ? booking.additionalServices : [];
+      const serviceLabels = {
+        airportTransfer: 'Airport Transfer',
+        earlyCheckIn: 'Early Check-in',
+        lateCheckOut: 'Late Check-out',
+        extraBed: 'Extra Bed',
+        breakfast: 'Daily Breakfast',
+      };
+      services.forEach((svc, i) => {
+        const bg = (i + 1) % 2 === 0 ? lightBg : '#ffffff';
+        doc.rect(50, y, 495, 22).fill(bg);
+        doc.fontSize(9).fillColor(dark).font('Helvetica')
+          .text(serviceLabels[svc.name] || svc.name, 60, y + 6)
+          .text('1', 320, y + 6)
+          .text(fmt(svc.cost), 380, y + 6)
+          .text(fmt(svc.cost), 445, y + 6, { width: 90, align: 'right' });
+        y += 22;
+      });
+
       // Referral discount
       if (booking.referralDiscount && booking.referralDiscount.amount > 0) {
         doc.rect(50, y, 495, 22).fill('#ffffff');

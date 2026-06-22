@@ -198,6 +198,7 @@ model Booking {
   roomPreferences     String?
   roomTypeId          String?
   roomTypeName        String?
+  additionalServices  Json?
   bankDetails         Json?
   bankDetailsSentAt   DateTime?
   paymentConfirmedAt  DateTime?

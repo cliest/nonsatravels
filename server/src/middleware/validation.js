@@ -68,6 +68,7 @@ export const bookingSchema = {
     promoCode: Joi.string().allow('', null),
     roomTypeId: Joi.string().allow('', null),
     roomTypeName: Joi.string().allow('', null),
+    additionalServices: Joi.array().items(Joi.object({ name: Joi.string(), cost: Joi.number() })).allow(null),
   }),
   updateStatus: Joi.object({
     status: Joi.string().required().valid(
