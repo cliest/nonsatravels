@@ -2798,6 +2798,7 @@ const AdminDashboard = () => {
         {showAddHotelModal && (
           <AddHotelModal
             newHotel={newHotel}
+            setNewHotel={setNewHotel}
             handleInputChange={handleInputChange}
             handleImageChange={handleImageChange}
             handleHotelImagesSelect={handleHotelImagesSelect}
@@ -2813,6 +2814,7 @@ const AdminDashboard = () => {
         {showEditHotelModal && (
           <AddHotelModal
             newHotel={newHotel}
+            setNewHotel={setNewHotel}
             handleInputChange={handleInputChange}
             handleImageChange={handleImageChange}
             handleHotelImagesSelect={handleHotelImagesSelect}
@@ -3537,6 +3539,7 @@ const AdminDashboard = () => {
 // Add Hotel Modal Component
 const AddHotelModal = ({
   newHotel,
+  setNewHotel,
   handleInputChange,
   handleImageChange,
   handleHotelImagesSelect,
