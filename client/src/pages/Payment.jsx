@@ -33,6 +33,8 @@ const Payment = () => {
   
   const bookingData = location.state?.bookingData;
 
+  const [bookingStep, setBookingStep] = useState(1);
+  const [createdBooking, setCreatedBooking] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("mobile_money");
   const [processing, setProcessing] = useState(false);
   const [momoPhone, setMomoPhone] = useState("");
@@ -238,57 +240,71 @@ const Payment = () => {
     }, 5000);
   };
 
-  const handlePayment = async (e) => {
+  // Step 1: Create booking and send invoice
+  const handleCreateBooking = async (e) => {
     e.preventDefault();
 
-    if (!validatePersonalInfo()) {
-      return;
+    if (!validatePersonalInfo()) return;
+    if (processing) return;
+    setProcessing(true);
+
+    try {
+      const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
+      let additionalCost = 0;
+      Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
+
+      const totalAmount = ((bookingData.totalPrice || 0) + additionalCost) - getDiscount();
+      if (!totalAmount || totalAmount <= 0) {
+        toast.error("Invalid booking amount. Please try again.");
+        setProcessing(false);
+        return;
+      }
+
+      const bookingPayload = {
+        hotelId: bookingData.hotelId,
+        checkInDate: bookingData.checkInDate,
+        checkOutDate: bookingData.checkOutDate,
+        guests: bookingData.guests,
+        totalPrice: totalAmount,
+        userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
+        userEmail: personalInfo.email,
+        userPhone: personalInfo.phone,
+        specialRequests: personalInfo.specialRequests || null,
+        roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
+        paymentMethod: "cash",
+        paymentStatus: "pending",
+        status: "pending_payment",
+        ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
+        ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
+      };
+
+      const response = await bookingAPI.create(bookingPayload);
+      setCreatedBooking(response.data.data);
+      setBookingStep(2);
+      toast.success("Booking created! Invoice sent to your email.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to create booking");
+    } finally {
+      setProcessing(false);
     }
+  };
+
+  // Step 2: Process payment for existing booking
+  const handlePayment = async (e) => {
+    e.preventDefault();
 
     if (processing) return;
     setProcessing(true);
 
     try {
-      // Cash payment — create booking with pending status
+      // Cash / Pay at Hotel — booking already created, go to confirmation
       if (paymentMethod === "cash") {
-        const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
-        let additionalCost = 0;
-        Object.keys(additionalServices).forEach((service) => {
-          if (additionalServices[service]) additionalCost += serviceCosts[service];
-        });
-
-        const totalAmount = ((bookingData.totalPrice || 0) + additionalCost) - getDiscount();
-        if (!totalAmount || totalAmount <= 0) {
-          toast.error("Invalid booking amount. Please try again.");
-          setProcessing(false);
-          return;
-        }
-
-        const bookingPayload = {
-          hotelId: bookingData.hotelId,
-          checkInDate: bookingData.checkInDate,
-          checkOutDate: bookingData.checkOutDate,
-          guests: bookingData.guests,
-          totalPrice: totalAmount,
-          userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
-          userEmail: personalInfo.email,
-          userPhone: personalInfo.phone,
-          specialRequests: personalInfo.specialRequests || null,
-          roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
-          paymentMethod: "cash",
-          paymentStatus: "pending",
-          status: "pending_payment",
-          ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
-          ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
-        };
-
-        const response = await bookingAPI.create(bookingPayload);
-        toast.success("Booking confirmed! An invoice has been sent to your email.");
+        toast.success("You can pay at the hotel on check-in.");
         setTimeout(() => {
           navigate("/booking-confirmation", {
-            state: { booking: response.data.data, hotel: bookingData, paymentMethod: "cash" },
+            state: { booking: createdBooking, hotel: bookingData, paymentMethod: "cash" },
           });
-        }, 1500);
+        }, 1000);
         return;
       }
 
@@ -565,6 +581,22 @@ const Payment = () => {
 
           {/* Payment Form */}
           <div className="lg:col-span-3 space-y-6">
+            {/* Step indicator */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`flex items-center gap-2 ${bookingStep >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${bookingStep >= 1 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
+                <span className="text-sm font-medium hidden sm:inline">Your Details</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gray-200"><div className={`h-full transition-all ${bookingStep >= 2 ? 'bg-primary w-full' : 'w-0'}`}></div></div>
+              <div className={`flex items-center gap-2 ${bookingStep >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${bookingStep >= 2 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
+                <span className="text-sm font-medium hidden sm:inline">Payment</span>
+              </div>
+            </div>
+
+            {/* Step 1: Personal Information */}
+            {bookingStep === 1 && (
+            <>
             {/* Personal Information */}
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
               <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-900 flex items-center gap-2">
@@ -786,6 +818,32 @@ const Payment = () => {
               </div>
             </div>
 
+            {/* Confirm Booking Button */}
+            <button
+              onClick={handleCreateBooking}
+              disabled={processing}
+              className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-accent transition-all shadow-lg text-lg disabled:opacity-50"
+            >
+              {processing ? (
+                <><FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> Creating Booking...</>
+              ) : (
+                <><FontAwesomeIcon icon={faCheck} className="mr-2" /> Confirm Booking & Send Invoice</>
+              )}
+            </button>
+            </>
+            )}
+
+            {/* Step 2: Payment */}
+            {bookingStep === 2 && (
+            <>
+            {/* Invoice sent confirmation */}
+            <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
+              <FontAwesomeIcon icon={faCircleCheck} className="text-green-600 text-3xl mb-2" />
+              <h3 className="font-bold text-green-800 text-lg mb-1">Booking Created!</h3>
+              <p className="text-green-700 text-sm">Invoice <strong>{createdBooking?.invoiceNumber || ''}</strong> has been sent to <strong>{personalInfo.email}</strong></p>
+              <p className="text-green-600 text-xs mt-1">Choose a payment method below, or pay later using the link in your email.</p>
+            </div>
+
             {/* Payment Details */}
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
               <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-gray-900">Payment Details</h2>
@@ -795,7 +853,7 @@ const Payment = () => {
                   <label className="block text-sm font-bold mb-4 text-gray-700">
                     Select Payment Method
                   </label>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="grid grid-cols-3 gap-3 md:gap-4">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod("mobile_money")}
@@ -991,6 +1049,8 @@ const Payment = () => {
                 By confirming this booking, you agree to our terms and conditions.
               </p>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
