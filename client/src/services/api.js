@@ -114,7 +114,15 @@ export const hotelAPI = {
   update: (id, data) => api.put(`/hotels/${id}`, data),
   delete: (id) => api.delete(`/hotels/${id}`),
   toggleFeatured: (id) => api.patch(`/hotels/${id}/featured`),
-  getAllHotels: (params) => api.get('/hotels', { params }), // Alias for compatibility
+  getMyHotels: () => api.get('/hotels/owner/my-hotels'),
+  getAllHotels: (params) => api.get('/hotels', { params }),
+};
+
+// Saved Search API
+export const savedSearchAPI = {
+  create: (data) => api.post('/saved-searches', data),
+  getAll: () => api.get('/saved-searches'),
+  delete: (id) => api.delete(`/saved-searches/${id}`),
 };
 
 // Booking API

@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   user
   admin
+  hotel_owner
 }
 
 enum BookingStatus {
@@ -143,6 +144,8 @@ model Hotel {
   rating            Float    @default(4.5)
   amenities         String[]
   images            String[]
+  cancellationPolicy String   @default("free_24h")
+  ownerId           String?
   isAvailable       Boolean  @default(true)
   isFeatured        Boolean  @default(false)
   createdAt         DateTime @default(now())
@@ -220,9 +223,11 @@ model Review {
   userAvatar String   @default("https://i.pravatar.cc/150?img=8")
   rating     Float
   comment    String
-  helpful    Int      @default(0)
-  isApproved Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  helpful         Int      @default(0)
+  photos          String[]
+  isApproved      Boolean  @default(false)
+  isVerifiedGuest Boolean  @default(false)
+  createdAt       DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   hotel Hotel @relation(fields: [hotelId], references: [id])
@@ -471,4 +476,19 @@ model CannedResponse {
   createdBy  String
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
+}
+
+model SavedSearch {
+  id                 String    @id @default(cuid())
+  userId             String
+  city               String?
+  checkIn            DateTime?
+  checkOut           DateTime?
+  guests             Int       @default(1)
+  maxPrice           Float?
+  lastNotifiedPrice  Float?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+
+  @@index([userId])
 }

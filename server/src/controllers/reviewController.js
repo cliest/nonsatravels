@@ -91,7 +91,23 @@ export const createReview = async (req, res) => {
     const existingReview = await prisma.review.findUnique({ where: { hotelId_userId: { hotelId, userId } } });
     if (existingReview) return res.status(400).json({ success: false, message: 'You have already reviewed this hotel' });
 
-    const review = await prisma.review.create({ data: { hotelId, userId, userName, userAvatar: '', rating, comment, isApproved: false } });
+    // Check if user has a completed booking at this hotel (verified guest)
+    const completedBooking = await prisma.booking.findFirst({
+      where: { userId, hotelId, status: 'completed' },
+    });
+    if (!completedBooking) {
+      return res.status(403).json({ success: false, message: 'You can only review hotels where you have completed a stay.' });
+    }
+
+    const { photos } = req.body;
+    const review = await prisma.review.create({
+      data: {
+        hotelId, userId, userName, userAvatar: '',
+        rating, comment, isApproved: false,
+        isVerifiedGuest: true,
+        photos: Array.isArray(photos) ? photos.slice(0, 5) : [],
+      },
+    });
 
     res.status(201).json({ success: true, data: review, message: 'Review submitted! It will appear after admin approval.' });
   } catch (error) {

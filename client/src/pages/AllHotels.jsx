@@ -99,7 +99,11 @@ const AllHotels = () => {
   const [allHotels, setAllHotels] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  
+  const [searchCheckIn, setSearchCheckIn] = useState("");
+  const [searchCheckOut, setSearchCheckOut] = useState("");
+  const [searchGuests, setSearchGuests] = useState("1");
+  const [datesApplied, setDatesApplied] = useState(false);
+
   // Get search params from URL
   const urlCity = searchParams.get("city") || "";
   const urlCheckIn = searchParams.get("checkIn") || "";
@@ -110,51 +114,58 @@ const AllHotels = () => {
   const amenitiesList = ["WiFi", "Pool", "Parking", "Gym", "Spa", "Restaurant", "Room Service"];
   const starRatings = [5, 4, 3, 2, 1];
 
-  // Fetch hotels from API
-  useEffect(() => {
-    const fetchHotels = async () => {
-      try {
-        setLoading(true);
-        const response = await hotelAPI.getAll();
-        const hotels = response.data.data.map(hotel => ({
-          id: hotel.id,
-          name: hotel.name,
-          city: hotel.city,
-          address: hotel.address,
-          location: hotel.city,
-          images: hotel.images || [],
-          hotel: {
-            name: hotel.name,
-            city: hotel.city,
-            address: hotel.address,
-          },
-          roomType: hotel.roomType,
-          pricePerNight: hotel.pricePerNight,
-          rating: hotel.rating,
-          image: hotel.images?.[0] || assets.image1,
-          amenities: hotel.amenities || [],
-          isAvailable: hotel.isAvailable,
-          description: hotel.description,
-          totalRooms: hotel.totalRooms,
-        }));
-        setAllHotels(hotels);
-        setFilteredHotels(hotels);
-      } catch (error) {
-        console.error('Failed to fetch hotels:', error);
-      } finally {
-        setLoading(false);
+  const fetchHotels = async (checkIn, checkOut, guests) => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (checkIn && checkOut) {
+        params.checkIn = checkIn;
+        params.checkOut = checkOut;
+        params.guests = guests || 1;
       }
-    };
+      const response = await hotelAPI.getAll(params);
+      const hotels = response.data.data.map(hotel => ({
+        id: hotel.id,
+        name: hotel.name,
+        city: hotel.city,
+        address: hotel.address,
+        location: hotel.city,
+        images: hotel.images || [],
+        hotel: { name: hotel.name, city: hotel.city, address: hotel.address },
+        roomType: hotel.roomType,
+        roomTypes: hotel.roomTypes || [],
+        pricePerNight: hotel.pricePerNight,
+        computedPrice: hotel.computedPrice || null,
+        computedTotal: hotel.computedTotal || null,
+        availableRooms: hotel.availableRooms ?? hotel.totalRooms,
+        cancellationLabel: hotel.cancellationLabel || 'Free cancellation up to 24 hours before check-in',
+        rating: hotel.rating,
+        image: hotel.images?.[0] || assets.image1,
+        amenities: hotel.amenities || [],
+        isAvailable: hotel.isAvailable,
+        totalRooms: hotel.totalRooms,
+      }));
+      setAllHotels(hotels);
+      setFilteredHotels(hotels);
+      setDatesApplied(!!(checkIn && checkOut));
+    } catch (error) {
+      console.error('Failed to fetch hotels:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchHotels();
+  useEffect(() => {
+    fetchHotels(urlCheckIn || null, urlCheckOut || null, urlGuests || null);
   }, []);
 
-  // Set initial search query from URL
+  // Set initial search from URL
   useEffect(() => {
-    if (urlCity) {
-      setSearchQuery(urlCity);
-    }
-  }, [urlCity]);
+    if (urlCity) setSearchQuery(urlCity);
+    if (urlCheckIn) setSearchCheckIn(urlCheckIn);
+    if (urlCheckOut) setSearchCheckOut(urlCheckOut);
+    if (urlGuests) setSearchGuests(urlGuests);
+  }, [urlCity, urlCheckIn, urlCheckOut, urlGuests]);
 
   // Handle room type selection
   const handleRoomTypeChange = (checked, roomType) => {
@@ -294,6 +305,47 @@ const AllHotels = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Date Search Bar */}
+          <div className="mb-5 p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Check-in</label>
+                <input type="date" value={searchCheckIn} onChange={(e) => setSearchCheckIn(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Check-out</label>
+                <input type="date" value={searchCheckOut} onChange={(e) => setSearchCheckOut(e.target.value)}
+                  min={searchCheckIn || new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+              </div>
+              <div className="w-24 flex-shrink-0">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Rooms</label>
+                <input type="number" value={searchGuests} onChange={(e) => setSearchGuests(e.target.value)} min="1" max="10"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+              </div>
+              <button
+                onClick={() => { if (searchCheckIn && searchCheckOut) fetchHotels(searchCheckIn, searchCheckOut, searchGuests); }}
+                disabled={!searchCheckIn || !searchCheckOut}
+                className="px-6 py-2.5 bg-primary text-white rounded-lg font-medium text-sm hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                Search
+              </button>
+              {datesApplied && (
+                <button onClick={() => { setSearchCheckIn(""); setSearchCheckOut(""); setDatesApplied(false); fetchHotels(); }}
+                  className="px-3 py-2.5 text-gray-500 hover:text-red-500 text-sm flex-shrink-0">
+                  <FontAwesomeIcon icon={faXmark} /> Clear
+                </button>
+              )}
+            </div>
+            {datesApplied && (
+              <p className="text-xs text-green-600 mt-2 font-medium">
+                Showing {filteredHotels.length} available hotels for your dates
+              </p>
+            )}
           </div>
 
           {/* Search Info Banner */}
@@ -489,8 +541,13 @@ const AllHotels = () => {
                       </span>
                     </div>
                     <div className="absolute bottom-3 left-3 bg-accent text-white px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium shadow-lg">
-                      {formatPrice(room.pricePerNight)}{t('hotels.perNight')}
+                      {room.computedPrice ? formatPrice(room.computedPrice) : formatPrice(room.pricePerNight)}{t('hotels.perNight')}
                     </div>
+                    {room.availableRooms <= 3 && room.availableRooms > 0 && (
+                      <div className="absolute bottom-3 right-3 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg animate-pulse">
+                        Only {room.availableRooms} left!
+                      </div>
+                    )}
                   </div>
 
                   {/* Hotel Details */}
@@ -514,6 +571,18 @@ const AllHotels = () => {
                         className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
                       />
                       <span className="line-clamp-1">{room.address || room.hotel?.address}</span>
+                    </div>
+
+                    {/* Cancellation + Room Types */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+                        {room.cancellationLabel?.includes('Non-refundable') ? 'Non-refundable' : 'Free cancellation'}
+                      </span>
+                      {room.roomTypes?.length > 0 && (
+                        <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+                          {room.roomTypes.length} room type{room.roomTypes.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
 
                     {/* Amenities */}

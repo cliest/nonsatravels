@@ -1,4 +1,6 @@
 import prisma from '../lib/prisma.js';
+import { checkAvailability } from '../utils/availabilityManager.js';
+import { calculateDynamicPrice } from '../utils/dynamicPricing.js';
 
 const hotelInclude = { roomTypes: { orderBy: { pricePerNight: 'asc' } } };
 
@@ -13,9 +15,17 @@ const recomputeHotelPricing = async (hotelId) => {
   });
 };
 
+const CANCELLATION_LABELS = {
+  free_24h: 'Free cancellation up to 24 hours before check-in',
+  free_48h: 'Free cancellation up to 48 hours before check-in',
+  free_7d: 'Free cancellation up to 7 days before check-in',
+  non_refundable: 'Non-refundable',
+  partial: 'Partial refund available',
+};
+
 export const getHotels = async (req, res) => {
   try {
-    const { city, search, minPrice, maxPrice, roomType, sortBy, limit } = req.query;
+    const { city, search, minPrice, maxPrice, roomType, sortBy, limit, checkIn, checkOut, guests } = req.query;
 
     const where = {};
 
@@ -46,7 +56,39 @@ export const getHotels = async (req, res) => {
       include: hotelInclude,
     });
 
-    res.status(200).json({ success: true, count: hotels.length, data: hotels });
+    // If dates provided, compute availability and pricing per hotel
+    if (checkIn && checkOut) {
+      const ci = new Date(checkIn);
+      const co = new Date(checkOut);
+      const roomsNeeded = parseInt(guests) || 1;
+
+      const enriched = await Promise.all(hotels.map(async (hotel) => {
+        try {
+          const availability = await checkAvailability(hotel.id, ci, co, roomsNeeded);
+          const pricing = await calculateDynamicPrice(hotel.id, ci, co);
+          return {
+            ...hotel,
+            availableRooms: availability.availableRooms,
+            isAvailableForDates: availability.available,
+            computedPrice: pricing.pricePerNight,
+            computedTotal: pricing.totalPrice,
+            cancellationLabel: CANCELLATION_LABELS[hotel.cancellationPolicy] || CANCELLATION_LABELS.free_24h,
+          };
+        } catch {
+          return { ...hotel, availableRooms: hotel.totalRooms, isAvailableForDates: true, cancellationLabel: CANCELLATION_LABELS[hotel.cancellationPolicy] || CANCELLATION_LABELS.free_24h };
+        }
+      }));
+
+      const available = enriched.filter(h => h.isAvailableForDates);
+      return res.status(200).json({ success: true, count: available.length, data: available, totalCount: enriched.length });
+    }
+
+    const data = hotels.map(h => ({
+      ...h,
+      cancellationLabel: CANCELLATION_LABELS[h.cancellationPolicy] || CANCELLATION_LABELS.free_24h,
+    }));
+
+    res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
@@ -63,7 +105,25 @@ export const getHotel = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Hotel not found' });
     }
 
-    res.status(200).json({ success: true, data: hotel });
+    // Compute scarcity for tomorrow
+    let availableRooms = hotel.totalRooms;
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      const avail = await checkAvailability(hotel.id, tomorrow, dayAfter, 1);
+      availableRooms = avail.availableRooms;
+    } catch {}
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...hotel,
+        availableRooms,
+        cancellationLabel: CANCELLATION_LABELS[hotel.cancellationPolicy] || CANCELLATION_LABELS.free_24h,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
@@ -96,6 +156,14 @@ export const createHotel = async (req, res) => {
 export const updateHotel = async (req, res) => {
   try {
     const { roomTypes: roomTypesInput, ...hotelData } = req.body;
+
+    // Owner check
+    if (req.user?.role === 'hotel_owner') {
+      const hotel = await prisma.hotel.findUnique({ where: { id: req.params.id } });
+      if (!hotel || hotel.ownerId !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Not authorized to edit this hotel' });
+      }
+    }
 
     if (roomTypesInput) {
       await prisma.roomType.deleteMany({ where: { hotelId: req.params.id } });
@@ -166,9 +234,28 @@ export const toggleFeatured = async (req, res) => {
   }
 };
 
+// Owner: get my hotels
+export const getMyHotels = async (req, res) => {
+  try {
+    const hotels = await prisma.hotel.findMany({
+      where: { ownerId: req.user.id },
+      include: hotelInclude,
+    });
+    res.status(200).json({ success: true, data: hotels });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Room Type CRUD
 export const addRoomType = async (req, res) => {
   try {
+    if (req.user?.role === 'hotel_owner') {
+      const hotel = await prisma.hotel.findUnique({ where: { id: req.params.hotelId } });
+      if (!hotel || hotel.ownerId !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+    }
     const rt = await prisma.roomType.create({
       data: { ...req.body, hotelId: req.params.hotelId },
     });

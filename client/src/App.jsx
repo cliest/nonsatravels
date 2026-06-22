@@ -12,6 +12,7 @@ import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useReferralTracking } from "./hooks/useReferralTracking";
 import { WeatherProvider } from "./context/WeatherContext";
 import { AuthProvider } from "./context/AuthContext";
+import { HelmetProvider } from "react-helmet-async";
 
 // Lazy load all pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -65,6 +66,7 @@ const App = () => {
   useReferralTracking();
 
   return (
+    <HelmetProvider>
     <AuthProvider>
       <WeatherProvider>
         <ScrollToTop />
@@ -123,6 +125,7 @@ const App = () => {
         {!isOwnerPath && <CompareBar />}
       </WeatherProvider>
     </AuthProvider>
+    </HelmetProvider>
   );
 };
 

@@ -48,6 +48,14 @@ export const startBookingScheduler = () => {
     sendCheckInReminders();
     setInterval(sendCheckInReminders, 24 * 60 * 60 * 1000);
   }, msUntil9AM);
+
+  // Price alerts: check every 6 hours
+  import('../controllers/savedSearchController.js').then(({ checkPriceAlerts }) => {
+    setTimeout(() => {
+      checkPriceAlerts();
+      setInterval(checkPriceAlerts, 6 * 60 * 60 * 1000);
+    }, 60000);
+  }).catch(e => console.error('Price alert scheduler init failed:', e));
 };
 
 export default { sendCheckInReminders, startBookingScheduler };

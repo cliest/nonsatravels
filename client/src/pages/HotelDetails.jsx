@@ -23,9 +23,10 @@ import {
   faExpand,
 } from "@fortawesome/free-solid-svg-icons";
 import { useUser } from "../context/AuthContext";
-import { hotelAPI, reviewAPI, availabilityAPI } from "../services/api";
+import { hotelAPI, reviewAPI, availabilityAPI, savedSearchAPI } from "../services/api";
 import { toast } from "../utils/toast";
 import { optimizeImage } from "../utils/cloudinary";
+import { Helmet } from "react-helmet-async";
 
 
 const HotelDetails = () => {
@@ -260,6 +261,24 @@ const HotelDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-16">
+      <Helmet>
+        <title>{hotel.name} - Book Now | Nonsa Travels</title>
+        <meta name="description" content={`Book ${hotel.name} in ${hotel.city}, ${hotel.address}. Starting from $${hotel.pricePerNight}/night. ${hotel.amenities?.slice(0, 4).join(', ')}.`} />
+        <meta property="og:title" content={`${hotel.name} | Nonsa Travels`} />
+        <meta property="og:description" content={`${hotel.name} in ${hotel.city}. From $${hotel.pricePerNight}/night. ${hotel.rating} star rating.`} />
+        {hotel.images?.[0] && <meta property="og:image" content={hotel.images[0]} />}
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LodgingBusiness",
+          name: hotel.name,
+          address: { "@type": "PostalAddress", streetAddress: hotel.address, addressLocality: hotel.city, addressCountry: "ZM" },
+          starRating: { "@type": "Rating", ratingValue: hotel.rating },
+          priceRange: `$${hotel.pricePerNight}+`,
+          image: hotel.images?.[0],
+          telephone: hotel.contact,
+        })}</script>
+      </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16">
         {/* Back Button */}
         <button
@@ -551,6 +570,13 @@ const HotelDetails = () => {
                   </div>
                 )}
 
+                {/* Scarcity Indicator */}
+                {hotel.availableRooms <= 3 && hotel.availableRooms > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <p className="text-red-600 font-bold text-sm animate-pulse">Only {hotel.availableRooms} room{hotel.availableRooms !== 1 ? 's' : ''} left!</p>
+                  </div>
+                )}
+
                 {/* Book Button */}
                 <button
                   type="submit"
@@ -577,6 +603,27 @@ const HotelDetails = () => {
                   Book via WhatsApp
                 </WhatsAppButton>
 
+                {isSignedIn && checkInDate && checkOutDate && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await savedSearchAPI.create({
+                          city: hotel.city,
+                          checkIn: checkInDate.toISOString(),
+                          checkOut: checkOutDate.toISOString(),
+                          guests,
+                          maxPrice: selectedRoomType?.pricePerNight || hotel.pricePerNight,
+                        });
+                        toast.success("Search saved! We'll notify you of price drops.");
+                      } catch { toast.error("Failed to save search"); }
+                    }}
+                    className="w-full py-2 text-sm text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors font-medium"
+                  >
+                    Save Search & Get Price Alerts
+                  </button>
+                )}
+
                 <p className="text-xs text-gray-500 text-center">
                   You won't be charged yet
                 </p>
@@ -587,8 +634,8 @@ const HotelDetails = () => {
                 <div className="flex items-start gap-3">
                   <FontAwesomeIcon icon={faCheck} className="text-green-600 mt-1 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-gray-900 text-xs sm:text-sm">Free cancellation</p>
-                    <p className="text-xs text-gray-600">Cancel up to 24 hours before check-in</p>
+                    <p className="font-semibold text-gray-900 text-xs sm:text-sm">Cancellation Policy</p>
+                    <p className="text-xs text-gray-600">{hotel.cancellationLabel || 'Free cancellation up to 24 hours before check-in'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
