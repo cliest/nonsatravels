@@ -1057,6 +1057,7 @@ const AdminDashboard = () => {
       peakSeasonMultiplier: (hotel.dynamicPricing?.peakSeasonMultiplier || 1.5).toString(),
       lowOccupancyDiscount: (hotel.dynamicPricing?.lowOccupancyDiscount || 0.9).toString(),
       highDemandMultiplier: (hotel.dynamicPricing?.highDemandMultiplier || 1.3).toString(),
+      cancellationPolicy: hotel.cancellationPolicy || 'free_24h',
       roomTypes: hotel.roomTypes?.length > 0
         ? hotel.roomTypes.map(rt => ({
             name: rt.name,
@@ -1125,6 +1126,7 @@ const AdminDashboard = () => {
           highDemandMultiplier: parseFloat(newHotel.highDemandMultiplier),
         },
         roomTypes: roomTypesPayload,
+        cancellationPolicy: newHotel.cancellationPolicy || 'free_24h',
       };
 
       const response = await hotelAPI.update(editingHotel.id, updatedData);
@@ -1351,6 +1353,7 @@ const AdminDashboard = () => {
           highDemandMultiplier: parseFloat(newHotel.highDemandMultiplier),
         },
         roomTypes: roomTypesPayload,
+        cancellationPolicy: newHotel.cancellationPolicy || 'free_24h',
       };
 
       const response = await hotelAPI.create(hotelData);
@@ -3869,6 +3872,24 @@ const AddHotelModal = ({
                   <option value="4.7">4.7 </option>
                   <option value="4.8">4.8 </option>
                   <option value="5.0">5.0 </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cancellation Policy
+                </label>
+                <select
+                  name="cancellationPolicy"
+                  value={newHotel.cancellationPolicy || "free_24h"}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                >
+                  <option value="free_24h">Free cancellation (24h before)</option>
+                  <option value="free_48h">Free cancellation (48h before)</option>
+                  <option value="free_7d">Free cancellation (7 days before)</option>
+                  <option value="partial">Partial refund available</option>
+                  <option value="non_refundable">Non-refundable</option>
                 </select>
               </div>
             </div>

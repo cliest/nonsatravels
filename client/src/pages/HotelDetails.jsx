@@ -23,7 +23,7 @@ import {
   faExpand,
 } from "@fortawesome/free-solid-svg-icons";
 import { useUser } from "../context/AuthContext";
-import { hotelAPI, reviewAPI, availabilityAPI, savedSearchAPI } from "../services/api";
+import { hotelAPI, reviewAPI, availabilityAPI, savedSearchAPI, bookingAPI } from "../services/api";
 import { toast } from "../utils/toast";
 import { optimizeImage } from "../utils/cloudinary";
 import { Helmet } from "react-helmet-async";
@@ -48,6 +48,8 @@ const HotelDetails = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [selectedRoomType, setSelectedRoomType] = useState(null);
+  const [canReview, setCanReview] = useState(false);
+  const [reviewPhotos, setReviewPhotos] = useState([""]);
 
   useEffect(() => {
     const fetchHotelDetails = async () => {
@@ -64,6 +66,13 @@ const HotelDetails = () => {
           setSelectedRoomType(hotelRes.data.data.roomTypes[0]);
         }
         setReviews(reviewsRes.data.data);
+
+        // Check if user can review (has a completed booking)
+        try {
+          const bookingsRes = await bookingAPI.getAll({ status: 'completed' });
+          const myBookings = bookingsRes.data.data || [];
+          setCanReview(myBookings.some(b => (b.hotelId?.id || b.hotelId) === id));
+        } catch { setCanReview(false); }
         
         // Filter similar hotels (same city or similar price range)
         const currentHotel = hotelRes.data.data;
@@ -164,19 +173,22 @@ const HotelDetails = () => {
     }
     
     try {
+      const validPhotos = reviewPhotos.filter(p => p.trim());
       const reviewData = {
         hotelId: hotel.id,
         rating: newReview.rating,
         comment: newReview.comment,
+        photos: validPhotos,
         userName: user.fullName || user.username || "Anonymous User",
         userAvatar: user.imageUrl || "https://i.pravatar.cc/150?img=8",
       };
-      
+
       const response = await reviewAPI.create(reviewData);
       setReviews([response.data.data, ...reviews]);
       setNewReview({ rating: 5, comment: "" });
+      setReviewPhotos([""]);
       setShowReviewForm(false);
-      toast.success("Review submitted successfully!");
+      toast.success(response.data.message || "Review submitted for approval!");
       
       // Refresh hotel data to get updated rating
       const hotelRes = await hotelAPI.getById(id);
@@ -683,13 +695,16 @@ const HotelDetails = () => {
                 </div>
               </div>
             </div>
-            {isSignedIn && !showReviewForm && (
+            {isSignedIn && !showReviewForm && canReview && (
               <button
                 onClick={() => setShowReviewForm(true)}
                 className="px-6 py-3 bg-accent hover:bg-accent/90 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
               >
                 Write a Review
               </button>
+            )}
+            {isSignedIn && !canReview && !showReviewForm && (
+              <p className="text-xs text-gray-400 italic">Only guests who completed a stay can leave reviews</p>
             )}
           </div>
 
@@ -768,6 +783,30 @@ const HotelDetails = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all resize-none"
                   />
                 </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Photos (optional)</label>
+                  <div className="space-y-2">
+                    {reviewPhotos.map((url, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => { const arr = [...reviewPhotos]; arr[idx] = e.target.value; setReviewPhotos(arr); }}
+                          placeholder="Paste image URL..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                        />
+                        {reviewPhotos.length > 1 && (
+                          <button type="button" onClick={() => setReviewPhotos(reviewPhotos.filter((_, i) => i !== idx))}
+                            className="px-2 text-red-400 hover:text-red-600 text-sm">✕</button>
+                        )}
+                      </div>
+                    ))}
+                    {reviewPhotos.length < 5 && (
+                      <button type="button" onClick={() => setReviewPhotos([...reviewPhotos, ""])}
+                        className="text-sm text-primary hover:text-accent font-medium">+ Add photo</button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-3">
                   <button
                     type="submit"
@@ -834,7 +873,19 @@ const HotelDetails = () => {
                           <span className="ml-1 font-medium text-gray-900">{review.rating}.0</span>
                         </div>
                       </div>
+                      {review.isVerifiedGuest && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-medium mb-2">
+                          <FontAwesomeIcon icon={faCheck} className="text-[8px]" /> Verified Guest
+                        </span>
+                      )}
                       <p className="text-gray-700 leading-relaxed mb-3">{review.comment}</p>
+                      {review.photos?.length > 0 && (
+                        <div className="flex gap-2 mb-3 flex-wrap">
+                          {review.photos.map((photo, i) => (
+                            <img key={i} src={photo} alt={`Review photo ${i + 1}`} className="w-20 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => window.open(photo, '_blank')} />
+                          ))}
+                        </div>
+                      )}
                       <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent transition-colors">
                         <FontAwesomeIcon icon={faThumbsUp} />
                         <span>Helpful ({review.helpful})</span>
