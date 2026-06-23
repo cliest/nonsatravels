@@ -33,9 +33,15 @@ const PaymentCallback = () => {
         if (data.status === "Successful" || data.booking?.paymentStatus === "completed") {
           const bookingRes = await bookingAPI.getById(referenceId).catch(() => null);
           if (bookingRes?.data?.data) {
+            const b = bookingRes.data.data;
+            const hotel = b.hotelId || {};
             setTimeout(() => {
               navigate("/booking-confirmation", {
-                state: { booking: bookingRes.data.data, paymentMethod: "card" },
+                state: {
+                  booking: b,
+                  hotel: { hotelId: hotel.id, hotelName: hotel.name, ...hotel },
+                  paymentMethod: "card",
+                },
               });
             }, 2000);
           }

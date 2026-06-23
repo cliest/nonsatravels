@@ -75,7 +75,7 @@ const recordPromoUsage = async (promoId, userId, bookingId) => {
 
 // Shared setup: validate hotel, check availability, calculate server-side price, reserve, create booking
 const createLipilaBooking = async (body, paymentMethod) => {
-  const { hotelId, checkInDate, checkOutDate, guests, userId, promoCode, roomTypeId, roomTypeName } = body;
+  const { hotelId, checkInDate, checkOutDate, guests, userId, promoCode, roomTypeId, roomTypeName, additionalServices } = body;
 
   const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
   if (!hotel) throw Object.assign(new Error('Hotel not found'), { statusCode: 404 });
@@ -86,7 +86,8 @@ const createLipilaBooking = async (body, paymentMethod) => {
   }
 
   const pricing = await calculateDynamicPrice(hotelId, checkInDate, checkOutDate, roomTypeId || null);
-  let finalPrice = pricing.totalPrice || body.totalPrice;
+  const servicesCost = Array.isArray(additionalServices) ? additionalServices.reduce((sum, s) => sum + (s.cost || 0), 0) : 0;
+  let finalPrice = (pricing.totalPrice || body.totalPrice) + servicesCost;
 
   if (!finalPrice || finalPrice <= 0) {
     throw Object.assign(new Error('Unable to calculate booking price.'), { statusCode: 400 });
@@ -117,6 +118,7 @@ const createLipilaBooking = async (body, paymentMethod) => {
       ...(promoCode && discount > 0 ? { promoCode: promoCode.toUpperCase(), promoDiscount: discount } : {}),
       ...(userId ? { userId } : {}),
       ...(roomTypeId ? { roomTypeId, roomTypeName: roomTypeName || null } : {}),
+      ...(additionalServices?.length ? { additionalServices } : {}),
     },
     include: { hotel: true },
   });

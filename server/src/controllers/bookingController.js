@@ -107,6 +107,13 @@ export const createBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Hotel not found' });
     }
 
+    if (roomTypeId) {
+      const rt = await prisma.roomType.findUnique({ where: { id: roomTypeId } });
+      if (!rt || rt.hotelId !== hotelId) {
+        return res.status(400).json({ success: false, message: 'Invalid room type for this hotel' });
+      }
+    }
+
     const availability = await checkAvailability(hotelId, checkInDate, checkOutDate, roomsRequested || 1);
     if (!availability.available) {
       return res.status(400).json({
