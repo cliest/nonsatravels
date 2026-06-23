@@ -40,7 +40,7 @@ import {
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI, destinationAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -193,6 +193,13 @@ const AdminDashboard = () => {
   const [adminReviews, setAdminReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewFilter, setReviewFilter] = useState("pending");
+
+  // Destinations Management
+  const [destinations, setDestinations] = useState([]);
+  const [destinationsLoading, setDestinationsLoading] = useState(false);
+  const [showDestModal, setShowDestModal] = useState(false);
+  const [editingDest, setEditingDest] = useState(null);
+  const [destForm, setDestForm] = useState({ name: "", image: "", description: "", cities: "", attractions: "[]" });
 
   // Analytics date range
   const [analyticsRange, setAnalyticsRange] = useState("year");
@@ -656,6 +663,66 @@ const AdminDashboard = () => {
     cancelledBookings: bookings.filter(
       (b) => b.status === "cancelled"
     ).length,
+  };
+
+  // Destinations Handlers
+  const fetchDestinations = async () => {
+    setDestinationsLoading(true);
+    try {
+      const res = await destinationAPI.getAllAdmin();
+      if (res.data.success) setDestinations(res.data.data);
+    } catch { toast.error("Failed to load destinations"); }
+    finally { setDestinationsLoading(false); }
+  };
+
+  const handleDestSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: destForm.name,
+      image: destForm.image || null,
+      description: destForm.description || null,
+      cities: destForm.cities.split(",").map(c => c.trim()).filter(Boolean),
+      attractions: (() => { try { return JSON.parse(destForm.attractions); } catch { return []; } })(),
+      isActive: true,
+    };
+    try {
+      if (editingDest) {
+        await destinationAPI.update(editingDest.id, payload);
+        toast.success("Destination updated");
+      } else {
+        await destinationAPI.create(payload);
+        toast.success("Destination created");
+      }
+      setShowDestModal(false);
+      setEditingDest(null);
+      fetchDestinations();
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to save destination"); }
+  };
+
+  const handleDeleteDest = async (id) => {
+    if (!window.confirm("Delete this destination?")) return;
+    try { await destinationAPI.delete(id); toast.success("Deleted"); fetchDestinations(); }
+    catch { toast.error("Failed to delete"); }
+  };
+
+  const handleSeedDestinations = async () => {
+    try {
+      const res = await destinationAPI.seed();
+      toast.success(res.data.message);
+      fetchDestinations();
+    } catch { toast.error("Failed to seed destinations"); }
+  };
+
+  const openEditDest = (d) => {
+    setEditingDest(d);
+    setDestForm({
+      name: d.name,
+      image: d.image || "",
+      description: d.description || "",
+      cities: (d.cities || []).join(", "),
+      attractions: JSON.stringify(d.attractions || [], null, 2),
+    });
+    setShowDestModal(true);
   };
 
   const filterBookingsByRange = (list) => {
@@ -1432,6 +1499,7 @@ const AdminDashboard = () => {
 
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Content</p>
             <SidebarNavItem icon={faGlobe} label="Homepage" active={activeTab === "homepage"} onClick={() => { setActiveTab("homepage"); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faGlobe} label="Destinations" active={activeTab === "destinations"} onClick={() => { setActiveTab("destinations"); fetchDestinations(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faStar} label="Testimonials" active={activeTab === "testimonials"} onClick={() => { setActiveTab("testimonials"); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faBlog} label="Blog" active={activeTab === "blog"} onClick={() => { setActiveTab("blog"); if (blogPosts.length === 0) fetchBlogPosts(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faTag} label="Promo Codes" active={activeTab === "promos"} onClick={() => { setActiveTab("promos"); if (promoCodes.length === 0) fetchPromoCodes(); setSidebarOpen(false); }} />
@@ -1483,6 +1551,7 @@ const AdminDashboard = () => {
                activeTab === "users" ? "Users" :
                activeTab === "blog" ? "Blog Posts" :
                activeTab === "newsletter" ? "Newsletter" :
+               activeTab === "destinations" ? "Destinations" :
                activeTab === "reviews" ? "Reviews" :
                "Promo Codes"}
             </h1>
@@ -2591,6 +2660,112 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* Destinations Tab */}
+            {activeTab === "destinations" && (
+              <div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Destinations</h2>
+                  <div className="flex gap-2">
+                    {destinations.length === 0 && (
+                      <button onClick={handleSeedDestinations} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
+                        Seed Default Provinces
+                      </button>
+                    )}
+                    <button onClick={() => { setEditingDest(null); setDestForm({ name: "", image: "", description: "", cities: "", attractions: "[]" }); setShowDestModal(true); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors">
+                      <FontAwesomeIcon icon={faPlus} /> Add Province
+                    </button>
+                  </div>
+                </div>
+
+                {destinationsLoading ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                ) : destinations.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <FontAwesomeIcon icon={faGlobe} className="text-5xl mb-3 text-gray-200" />
+                    <p className="font-medium">No destinations yet</p>
+                    <p className="text-sm mt-1">Click "Seed Default Provinces" to populate with Zambian provinces.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {destinations.map((d) => (
+                      <div key={d.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row gap-4">
+                        {d.image && <img src={d.image} alt={d.name} className="w-full sm:w-32 h-24 object-cover rounded-lg flex-shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-bold text-gray-900">{d.name}</h3>
+                              <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{d.description}</p>
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {(d.cities || []).map(c => (
+                                  <span key={c} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{c}</span>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1">{(d.attractions || []).length} attractions</p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <button onClick={() => openEditDest(d)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors">
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+                              <button onClick={() => handleDeleteDest(d.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors">
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Destination Modal */}
+                {showDestModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                      <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+                        <h2 className="text-xl font-bold text-gray-900">{editingDest ? "Edit Destination" : "Add Destination"}</h2>
+                        <button onClick={() => setShowDestModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </div>
+                      <form onSubmit={handleDestSubmit} className="p-6 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Province Name *</label>
+                          <input required type="text" value={destForm.name} onChange={(e) => setDestForm({ ...destForm, name: e.target.value })}
+                            placeholder="e.g. Southern Province" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image URL</label>
+                          <input type="url" value={destForm.image} onChange={(e) => setDestForm({ ...destForm, image: e.target.value })}
+                            placeholder="https://..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea rows={2} value={destForm.description} onChange={(e) => setDestForm({ ...destForm, description: e.target.value })}
+                            placeholder="Brief description of the province..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Cities (comma-separated)</label>
+                          <input type="text" value={destForm.cities} onChange={(e) => setDestForm({ ...destForm, cities: e.target.value })}
+                            placeholder="Livingstone, Choma, Mazabuka" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Attractions (JSON array)</label>
+                          <p className="text-xs text-gray-500 mb-1">Format: [{"{"}"name":"...", "type":"Nature|Wildlife|Culture|History|Adventure|Wonder", "description":"..."{"}"}, ...]</p>
+                          <textarea rows={6} value={destForm.attractions} onChange={(e) => setDestForm({ ...destForm, attractions: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono text-xs" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button type="button" onClick={() => setShowDestModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                          <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors">{editingDest ? "Update" : "Create"}</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

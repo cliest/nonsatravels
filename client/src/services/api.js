@@ -125,6 +125,16 @@ export const savedSearchAPI = {
   delete: (id) => api.delete(`/saved-searches/${id}`),
 };
 
+// Destination API
+export const destinationAPI = {
+  getAll: () => api.get('/destinations'),
+  getAllAdmin: () => api.get('/destinations/admin'),
+  create: (data) => api.post('/destinations', data),
+  update: (id, data) => api.put(`/destinations/${id}`, data),
+  delete: (id) => api.delete(`/destinations/${id}`),
+  seed: () => api.post('/destinations/seed'),
+};
+
 // Booking API
 export const bookingAPI = {
   getAll: (params) => api.get('/bookings', { params }),

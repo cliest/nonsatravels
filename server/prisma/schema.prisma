@@ -493,3 +493,16 @@ model SavedSearch {
 
   @@index([userId])
 }
+
+model Destination {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  image       String?
+  description String?
+  cities      String[]
+  attractions Json     @default("[]")
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

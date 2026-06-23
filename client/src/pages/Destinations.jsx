@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { hotelAPI } from "../services/api";
+import { hotelAPI, destinationAPI } from "../services/api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMapMarkerAlt, faHotel, faArrowRight, faSearch, faMountain, faPaw, faLandmark, faPersonHiking, faCartShopping, faCamera } from "@fortawesome/free-solid-svg-icons";
 import { Helmet } from "react-helmet-async";
@@ -132,12 +132,25 @@ const PROVINCES = [
 const Destinations = () => {
   const navigate = useNavigate();
   const [hotels, setHotels] = useState([]);
+  const [provinces, setProvinces] = useState(PROVINCES);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    hotelAPI.getAll().then(res => {
-      setHotels(res.data.data || []);
+    Promise.all([
+      hotelAPI.getAll(),
+      destinationAPI.getAll().catch(() => null),
+    ]).then(([hotelsRes, destRes]) => {
+      setHotels(hotelsRes.data.data || []);
+      if (destRes?.data?.data?.length > 0) {
+        setProvinces(destRes.data.data.map(d => ({
+          name: d.name,
+          image: d.image,
+          description: d.description,
+          cities: d.cities || [],
+          attractions: d.attractions || [],
+        })));
+      }
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -152,11 +165,11 @@ const Destinations = () => {
   };
 
   const filteredProvinces = searchQuery
-    ? PROVINCES.filter(p =>
+    ? provinces.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.cities.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
       )
-    : PROVINCES;
+    : provinces;
 
   const handleCityClick = (city) => {
     navigate(`/hotels?city=${encodeURIComponent(city)}`);
