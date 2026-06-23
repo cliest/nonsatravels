@@ -3,18 +3,17 @@ import axios from 'axios';
 const BASE_URL = process.env.LIPILA_BASE_URL || 'https://blz.lipila.io';
 const API_KEY = process.env.LIPILA_API_KEY;
 
-const headers = (callbackUrl) => ({
+const baseHeaders = {
   accept: 'application/json',
   'Content-Type': 'application/json',
   'x-api-key': API_KEY,
-  ...(callbackUrl ? { callbackUrl } : {}),
-});
+};
 
-export const initiateMoMoCollection = async ({ referenceId, amount, narration, accountNumber, currency = 'USD', email, callbackUrl }) => {
+export const initiateMoMoCollection = async ({ referenceId, amount, narration, accountNumber, currency = 'USD', email }) => {
   const response = await axios.post(
     `${BASE_URL}/api/v1/collections/mobile-money`,
     { referenceId, amount, narration, accountNumber, currency, email },
-    { headers: headers(callbackUrl) }
+    { headers: baseHeaders }
   );
   return response.data;
 };
@@ -23,7 +22,7 @@ export const initiateCardCollection = async ({ customerInfo, collectionRequest, 
   const response = await axios.post(
     `${BASE_URL}/api/v1/collections/card`,
     { customerInfo, collectionRequest },
-    { headers: headers(callbackUrl) }
+    { headers: callbackUrl ? { ...baseHeaders, callbackUrl } : baseHeaders }
   );
   return response.data;
 };

@@ -168,7 +168,6 @@ export const initiateMoMo = async (req, res) => {
       accountNumber: phoneNumber,
       currency: 'USD',
       email: booking.userEmail,
-      callbackUrl: WEBHOOK_URL,
     });
 
     console.log(`[initiateMoMo] bookingId=${booking.id} paymentRef=${paymentRef} phone=${phoneNumber} lipilaResponse=`, JSON.stringify(lipilaRes));
@@ -307,14 +306,42 @@ export const checkStatus = async (req, res) => {
       });
     }
 
-    // Try Lipila status check
+    // Poll Lipila for status
     let lipilaStatus = 'Pending';
     try {
       const lipilaData = await checkCollectionStatus(referenceId);
       lipilaStatus = lipilaData?.status || 'Pending';
       console.log(`[checkStatus] ref=${referenceId} lipilaStatus=${lipilaStatus}`);
+
+      // Confirm booking if Lipila says Successful (no webhook for MoMo)
+      if (lipilaStatus === 'Successful' && booking.status !== 'payment_confirmed') {
+        const updated = await prisma.booking.update({
+          where: { id: bookingId },
+          data: { paymentStatus: 'completed', status: 'payment_confirmed', paymentConfirmedAt: new Date() },
+          include: { hotel: true },
+        });
+
+        // Send receipt email in background
+        try {
+          const hotel = updated.hotel;
+          const populatedBooking = { ...updated, _id: updated.id, hotelId: hotel };
+          if (!updated.invoiceNumber) {
+            await prisma.booking.update({ where: { id: bookingId }, data: { invoiceNumber: generateInvoiceNumber(), invoiceGeneratedAt: new Date() } });
+          }
+          const invoicePDF = await generateInvoicePDF(populatedBooking, hotel);
+          const emailContent = paymentConfirmedEmail(populatedBooking, hotel);
+          await sendEmail({ to: updated.userEmail, subject: `Payment Receipt - ${hotel.name}`, html: emailContent.html, text: emailContent.text, attachments: [{ filename: `Receipt-${updated.invoiceNumber || bookingId}.pdf`, content: invoicePDF }] });
+        } catch (e) { console.error('[checkStatus] Receipt email error:', e.message); }
+
+        return res.status(200).json({ success: true, data: { status: 'Successful', booking: { id: booking.id, status: 'payment_confirmed', paymentStatus: 'completed' } } });
+      }
+
+      // Mark as failed if Lipila says Failed
+      if (lipilaStatus === 'Failed' && booking.status !== 'cancelled') {
+        await prisma.booking.update({ where: { id: bookingId }, data: { paymentStatus: 'failed', status: 'cancelled' } });
+      }
     } catch (lipilaErr) {
-      console.log(`[checkStatus] Lipila unreachable (${lipilaErr.message}), relying on webhook`);
+      console.log(`[checkStatus] Lipila unreachable (${lipilaErr.message})`);
     }
 
     return res.status(200).json({
