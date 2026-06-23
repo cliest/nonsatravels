@@ -31,7 +31,7 @@ export const PRICE_RANGE = {
 export const NAV_LINKS = [
   { name: "Home", path: "/" },
   { name: "Hotels", path: "/hotels" },
-  { name: "Map", path: "/map" },
+  { name: "Blog", path: "/blog" },
   { name: "My Trips", path: "/my-trips" },
   { name: "About", path: "/about" },
 ];
