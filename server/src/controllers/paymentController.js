@@ -160,8 +160,9 @@ export const initiateMoMo = async (req, res) => {
     const USD_TO_ZMW = await getUSDtoZMW();
     const momoAmount = Math.round(finalPrice * USD_TO_ZMW * 100) / 100;
 
+    const paymentRef = `${booking.id}-${Date.now().toString(36)}`;
     const lipilaRes = await initiateMoMoCollection({
-      referenceId: booking.id,
+      referenceId: paymentRef,
       amount: momoAmount,
       narration: `Hotel booking - ${hotel.name} ($${finalPrice} USD)`,
       accountNumber: phoneNumber,
@@ -170,18 +171,18 @@ export const initiateMoMo = async (req, res) => {
       callbackUrl: WEBHOOK_URL,
     });
 
-    console.log(`[initiateMoMo] bookingId=${booking.id} phone=${phoneNumber} lipilaResponse=`, JSON.stringify(lipilaRes));
+    console.log(`[initiateMoMo] bookingId=${booking.id} paymentRef=${paymentRef} phone=${phoneNumber} lipilaResponse=`, JSON.stringify(lipilaRes));
 
     await prisma.booking.update({
       where: { id: booking.id },
-      data: { paymentId: lipilaRes.identifier },
+      data: { paymentId: `${lipilaRes.identifier}|${paymentRef}` },
     });
 
     return res.status(200).json({
       success: true,
       data: {
         bookingId: booking.id,
-        referenceId: booking.id,
+        referenceId: paymentRef,
         identifier: lipilaRes.identifier,
         status: lipilaRes.status,
         promoApplied: appliedPromo ? { code: appliedPromo.code, discount: booking.promoDiscount } : null,
@@ -235,7 +236,7 @@ export const initiateCard = async (req, res) => {
         email: booking.userEmail,
       },
       collectionRequest: {
-        referenceId: booking.id,
+        referenceId: `${booking.id}-${Date.now().toString(36)}`,
         amount: finalPrice,
         narration: `Hotel booking - ${hotel.name}`,
         accountNumber: booking.userEmail,
@@ -275,9 +276,10 @@ export const getExchangeRate = async (req, res) => {
 
 export const checkStatus = async (req, res) => {
   const { referenceId } = req.params;
+  const bookingId = referenceId.includes('-') ? referenceId.replace(/-[^-]+$/, '') : referenceId;
 
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: referenceId } });
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
@@ -337,11 +339,16 @@ export const handleWebhook = async (req, res) => {
   if (!referenceId) return;
 
   try {
+    // Extract booking ID from payment ref (format: bookingId-timestamp)
+    const bookingId = referenceId.includes('-') ? referenceId.replace(/-[^-]+$/, '') : referenceId;
     const booking = await prisma.booking.findUnique({
-      where: { id: referenceId },
+      where: { id: bookingId },
       include: { hotel: true },
     });
-    if (!booking) return;
+    if (!booking) {
+      console.error(`[webhook] Booking not found for ref=${referenceId} bookingId=${bookingId}`);
+      return;
+    }
 
     // Idempotency: skip if already in a final state
     if (booking.status === 'payment_confirmed' || booking.status === 'cancelled') return;
