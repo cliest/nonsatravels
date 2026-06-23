@@ -28,18 +28,18 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import CurrencySelector from "./CurrencySelector";
 import { useWeather } from "../context/WeatherContext";
 
-// Main navigation links - keep it minimal
+// Main navigation links
 const MAIN_NAV = [
   { name: "Home", path: "/", icon: faHome },
   { name: "Hotels", path: "/hotels", icon: faHotel },
-  { name: "Explore", path: "/map", icon: faMap },
+  { name: "Destinations", path: "/destinations", icon: faMap },
+  { name: "Blog", path: "/blog", icon: faBlog },
 ];
 
 // Secondary links for "More" dropdown
 const MORE_NAV = [
   { name: "My Trips", path: "/my-trips", icon: faRoute },
   { name: "Offers", path: "/offers", icon: faGift },
-  { name: "Blog", path: "/blog", icon: faBlog },
   { name: "About", path: "/about", icon: faInfoCircle },
 ];
 
