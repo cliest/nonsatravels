@@ -165,7 +165,7 @@ export const initiateMoMo = async (req, res) => {
       amount: momoAmount,
       narration: `Hotel booking - ${hotel.name} ($${finalPrice} USD)`,
       accountNumber: phoneNumber,
-      currency: 'ZMW',
+      currency: 'USD',
       email: booking.userEmail,
       callbackUrl: WEBHOOK_URL,
     });
