@@ -358,7 +358,7 @@ export const handleWebhook = async (req, res) => {
     if (!isSuccess && !isFailed) return;
 
     const updated = await prisma.booking.update({
-      where: { id: referenceId },
+      where: { id: bookingId },
       data: {
         paymentStatus: isSuccess ? 'completed' : 'failed',
         status: isSuccess ? 'payment_confirmed' : 'cancelled',
@@ -372,7 +372,7 @@ export const handleWebhook = async (req, res) => {
     // Record promo code usage if applicable
     if (booking.promoCode) {
       const promo = await prisma.promoCode.findFirst({ where: { code: booking.promoCode } });
-      if (promo) await recordPromoUsage(promo.id, booking.userId, referenceId);
+      if (promo) await recordPromoUsage(promo.id, booking.userId, bookingId);
     }
 
     // Generate invoice and send confirmation email
@@ -384,7 +384,7 @@ export const handleWebhook = async (req, res) => {
       if (!updated.invoiceNumber) {
         const invoiceNumber = generateInvoiceNumber();
         const withInvoice = await prisma.booking.update({
-          where: { id: referenceId },
+          where: { id: bookingId },
           data: { invoiceNumber, invoiceGeneratedAt: new Date() },
           include: { hotel: true },
         });
