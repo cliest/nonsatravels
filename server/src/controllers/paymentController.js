@@ -125,17 +125,32 @@ const createLipilaBooking = async (body, paymentMethod) => {
 };
 
 export const initiateMoMo = async (req, res) => {
-  const { phoneNumber, ...bookingData } = req.body;
+  const { phoneNumber, bookingId, ...bookingData } = req.body;
 
   if (!phoneNumber) {
     return res.status(400).json({ success: false, message: 'Phone number is required for mobile money payment' });
   }
 
   let booking, hotel, finalPrice, appliedPromo;
-  try {
-    ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'mobile_money'));
-  } catch (err) {
-    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+
+  // If booking already exists (two-step flow), use it
+  if (bookingId) {
+    try {
+      const existing = await prisma.booking.findUnique({ where: { id: bookingId }, include: { hotel: true } });
+      if (!existing) return res.status(404).json({ success: false, message: 'Booking not found' });
+      booking = existing;
+      hotel = existing.hotel;
+      finalPrice = existing.totalPrice;
+      await prisma.booking.update({ where: { id: bookingId }, data: { paymentMethod: 'mobile_money' } });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  } else {
+    try {
+      ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'mobile_money'));
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+    }
   }
 
   try {
@@ -171,24 +186,38 @@ export const initiateMoMo = async (req, res) => {
       },
     });
   } catch (err) {
-    await prisma.booking.delete({ where: { id: booking.id } }).catch(() => {});
+    if (!bookingId) await prisma.booking.delete({ where: { id: booking.id } }).catch(() => {});
     const msg = err.response?.data || err.message;
     return res.status(502).json({ success: false, message: 'Payment initiation failed', error: msg });
   }
 };
 
 export const initiateCard = async (req, res) => {
-  const { personalInfo, ...bookingData } = req.body;
+  const { personalInfo, bookingId, ...bookingData } = req.body;
 
   if (!personalInfo) {
     return res.status(400).json({ success: false, message: 'Customer info is required for card payment' });
   }
 
   let booking, hotel, finalPrice, appliedPromo;
-  try {
-    ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'card'));
-  } catch (err) {
-    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+
+  if (bookingId) {
+    try {
+      const existing = await prisma.booking.findUnique({ where: { id: bookingId }, include: { hotel: true } });
+      if (!existing) return res.status(404).json({ success: false, message: 'Booking not found' });
+      booking = existing;
+      hotel = existing.hotel;
+      finalPrice = existing.totalPrice;
+      await prisma.booking.update({ where: { id: bookingId }, data: { paymentMethod: 'card' } });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  } else {
+    try {
+      ({ booking, hotel, finalPrice, appliedPromo } = await createLipilaBooking(bookingData, 'card'));
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+    }
   }
 
   try {

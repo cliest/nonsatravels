@@ -366,6 +366,7 @@ const Payment = () => {
         }
 
         const response = await paymentAPI.initiateMoMo({
+          bookingId: createdBooking?.id || createdBooking?._id,
           hotelId: bookingData.hotelId,
           hotelName: bookingData.hotelName,
           checkInDate: bookingData.checkInDate,
@@ -391,6 +392,7 @@ const Payment = () => {
       // Card payment via Lipila
       if (paymentMethod === "card") {
         const response = await paymentAPI.initiateCard({
+          bookingId: createdBooking?.id || createdBooking?._id,
           hotelId: bookingData.hotelId,
           hotelName: bookingData.hotelName,
           checkInDate: bookingData.checkInDate,
