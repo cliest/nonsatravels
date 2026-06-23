@@ -164,7 +164,7 @@ export const initiateMoMo = async (req, res) => {
     const lipilaRes = await initiateMoMoCollection({
       referenceId: paymentRef,
       amount: momoAmount,
-      narration: `Hotel booking - ${hotel.name} ($${finalPrice} USD)`,
+      narration: `Booking at ${hotel.name}`,
       accountNumber: phoneNumber,
       currency: 'USD',
       email: booking.userEmail,
