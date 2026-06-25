@@ -215,9 +215,16 @@ export const sendNewsletter = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No active subscribers found' });
     }
 
+    // Look up user names for personalization
     const emails = subscribers.map(s => s.email);
+    const users = await prisma.user.findMany({
+      where: { email: { in: emails } },
+      select: { email: true, firstName: true, lastName: true },
+    });
+    const nameMap = {};
+    users.forEach(u => { nameMap[u.email] = u.firstName || 'Subscriber'; });
 
-    // Send in batches of 50 to avoid rate limits
+    // Send in batches of 50, personalizing {{name}} per recipient
     const BATCH_SIZE = 50;
     let sent = 0;
     let failed = 0;
@@ -225,7 +232,13 @@ export const sendNewsletter = async (req, res) => {
     for (let i = 0; i < emails.length; i += BATCH_SIZE) {
       const batch = emails.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
-        batch.map(to => sendEmail({ to, subject, html, text: text || subject, tags: ['newsletter'] }))
+        batch.map(to => {
+          const name = nameMap[to] || 'Subscriber';
+          const personalHtml = html.replace(/\{\{name\}\}/gi, name);
+          const personalText = (text || subject).replace(/\{\{name\}\}/gi, name);
+          const personalSubject = subject.replace(/\{\{name\}\}/gi, name);
+          return sendEmail({ to, subject: personalSubject, html: personalHtml, text: personalText, tags: ['newsletter'] });
+        })
       );
       results.forEach(r => r.status === 'fulfilled' && !r.value.failed ? sent++ : failed++);
     }
