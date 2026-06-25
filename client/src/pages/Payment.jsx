@@ -49,6 +49,8 @@ const Payment = () => {
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
   
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const [personalInfo, setPersonalInfo] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -150,21 +152,15 @@ const Payment = () => {
   };
 
   const validatePersonalInfo = () => {
-    if (!personalInfo.firstName || personalInfo.firstName.trim().length < 2) {
-      toast.warning("Please enter your first name");
-      return false;
-    }
-    if (!personalInfo.lastName || personalInfo.lastName.trim().length < 2) {
-      toast.warning("Please enter your last name");
-      return false;
-    }
-    if (!personalInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) {
-      toast.warning("Please enter a valid email address");
-      return false;
-    }
-    const effectivePhone = personalInfo.phone?.trim() || (paymentMethod === "mobile_money" ? momoPhone?.trim() : "");
-    if (!effectivePhone || effectivePhone.length < 9) {
-      toast.warning("Please enter a valid phone number");
+    const errors = {};
+    if (!personalInfo.firstName || personalInfo.firstName.trim().length < 2) errors.firstName = "First name is required (min 2 characters)";
+    if (!personalInfo.lastName || personalInfo.lastName.trim().length < 2) errors.lastName = "Last name is required (min 2 characters)";
+    if (!personalInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) errors.email = "Please enter a valid email address";
+    const effectivePhone = personalInfo.phone?.trim() || "";
+    if (!effectivePhone || effectivePhone.length < 9) errors.phone = "Please enter a valid phone number";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.warning("Please fix the highlighted fields");
       return false;
     }
     return true;
@@ -687,11 +683,12 @@ const Payment = () => {
                     type="text"
                     name="firstName"
                     value={personalInfo.firstName}
-                    onChange={handlePersonalInfoChange}
+                    onChange={(e) => { handlePersonalInfoChange(e); setFieldErrors(prev => ({ ...prev, firstName: undefined })); }}
                     placeholder="John"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${fieldErrors.firstName ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'}`}
                     required
                   />
+                  {fieldErrors.firstName && <p className="text-red-500 text-xs mt-1">{fieldErrors.firstName}</p>}
                 </div>
 
                 <div>
@@ -700,11 +697,12 @@ const Payment = () => {
                     type="text"
                     name="lastName"
                     value={personalInfo.lastName}
-                    onChange={handlePersonalInfoChange}
+                    onChange={(e) => { handlePersonalInfoChange(e); setFieldErrors(prev => ({ ...prev, lastName: undefined })); }}
                     placeholder="Doe"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${fieldErrors.lastName ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'}`}
                     required
                   />
+                  {fieldErrors.lastName && <p className="text-red-500 text-xs mt-1">{fieldErrors.lastName}</p>}
                 </div>
 
                 <div>
@@ -713,11 +711,12 @@ const Payment = () => {
                     type="email"
                     name="email"
                     value={personalInfo.email}
-                    onChange={handlePersonalInfoChange}
+                    onChange={(e) => { handlePersonalInfoChange(e); setFieldErrors(prev => ({ ...prev, email: undefined })); }}
                     placeholder="john@example.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${fieldErrors.email ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'}`}
                     required
                   />
+                  {fieldErrors.email && <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>}
                 </div>
 
                 <div>
@@ -729,11 +728,12 @@ const Payment = () => {
                     type="tel"
                     name="phone"
                     value={personalInfo.phone}
-                    onChange={handlePersonalInfoChange}
+                    onChange={(e) => { handlePersonalInfoChange(e); setFieldErrors(prev => ({ ...prev, phone: undefined })); }}
                     placeholder="+260 XXX XXX XXX"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${fieldErrors.phone ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-green-500'}`}
                     required
                   />
+                  {fieldErrors.phone && <p className="text-red-500 text-xs mt-1">{fieldErrors.phone}</p>}
                   <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
                     <FontAwesomeIcon icon={faWhatsapp} className="text-green-500" />
                     Booking confirmation and updates will be sent to this WhatsApp number. Please ensure it is active on WhatsApp.

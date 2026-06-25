@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import PageLoadingBar from "./components/PageLoadingBar";
 import ChatWidget from "./components/ChatWidget";
 import CompareBar from "./components/CompareBar";
+import BackToTop from "./components/BackToTop";
 import SkipLink from "./components/SkipLink";
 import ScrollToTop from "./components/ScrollToTop";
 import EmailVerificationBanner from "./components/EmailVerificationBanner";
@@ -129,6 +130,7 @@ const App = () => {
         {!isOwnerPath && <Footer />}
         {!isOwnerPath && <ChatWidget />}
         {!isOwnerPath && <CompareBar />}
+        <BackToTop />
       </WeatherProvider>
     </AuthProvider>
     </HelmetProvider>

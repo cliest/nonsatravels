@@ -27,6 +27,7 @@ import { hotelAPI, reviewAPI, availabilityAPI, savedSearchAPI, bookingAPI } from
 import { toast } from "../utils/toast";
 import { optimizeImage } from "../utils/cloudinary";
 import { Helmet } from "react-helmet-async";
+import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
 
 
 const HotelDetails = () => {
@@ -50,6 +51,7 @@ const HotelDetails = () => {
   const [selectedRoomType, setSelectedRoomType] = useState(null);
   const [canReview, setCanReview] = useState(false);
   const [reviewPhotos, setReviewPhotos] = useState([""]);
+  const { addToRecentlyViewed } = useRecentlyViewed();
 
   useEffect(() => {
     const fetchHotelDetails = async () => {
@@ -62,6 +64,7 @@ const HotelDetails = () => {
         ]);
         
         setHotel(hotelRes.data.data);
+        addToRecentlyViewed(hotelRes.data.data);
         if (hotelRes.data.data.roomTypes?.length > 0) {
           setSelectedRoomType(hotelRes.data.data.roomTypes[0]);
         }
@@ -292,14 +295,15 @@ const HotelDetails = () => {
         })}</script>
       </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-16">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-primary hover:text-accent transition-all mb-6 group btn-scale"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} className="group-hover:-translate-x-1 transition-transform duration-300" />
-          <span className="font-medium">Back to Hotels</span>
-        </button>
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-4 flex-wrap" aria-label="Breadcrumb">
+          <a href="/" className="hover:text-primary transition-colors">Home</a>
+          <span>/</span>
+          <a href="/hotels" className="hover:text-primary transition-colors">Hotels</a>
+          <span>/</span>
+          {hotel.city && <><a href={`/hotels?city=${encodeURIComponent(hotel.city)}`} className="hover:text-primary transition-colors">{hotel.city}</a><span>/</span></>}
+          <span className="text-gray-900 font-medium truncate max-w-[200px]">{hotel.name}</span>
+        </nav>
 
         <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
           {/* Left Section - Hotel Details */}

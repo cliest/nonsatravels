@@ -277,7 +277,14 @@ const Navbar = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 truncate">{user?.fullName || user?.firstName}</p>
-                      <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      {user?.loyaltyTier && user.loyaltyTier !== 'bronze' && (
+                        <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          user.loyaltyTier === 'platinum' ? 'bg-purple-100 text-purple-700' :
+                          user.loyaltyTier === 'gold' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>{user.loyaltyTier.charAt(0).toUpperCase() + user.loyaltyTier.slice(1)} Member</span>
+                      )}
                     </div>
                   </div>
                   
