@@ -912,12 +912,11 @@ const Payment = () => {
             {/* Step 2: Payment */}
             {bookingStep === 2 && (
             <>
-            {/* Invoice sent confirmation */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
-              <FontAwesomeIcon icon={faCircleCheck} className="text-green-600 text-3xl mb-2" />
-              <h3 className="font-bold text-green-800 text-lg mb-1">Booking Created!</h3>
-              <p className="text-green-700 text-sm">Invoice <strong>{createdBooking?.invoiceNumber || ''}</strong> has been sent to <strong>{personalInfo.email}</strong></p>
-              <p className="text-green-600 text-xs mt-1">Choose a payment method below, or pay later using the link in your email.</p>
+            {/* Payment ready banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-center">
+              <FontAwesomeIcon icon={faCircleCheck} className="text-blue-600 text-3xl mb-2" />
+              <h3 className="font-bold text-blue-800 text-lg mb-1">Complete Your Payment</h3>
+              <p className="text-blue-700 text-sm">Invoice <strong>{createdBooking?.invoiceNumber || ''}</strong> · Total: <strong>{formatCurrency(createdBooking?.totalPrice || 0)}</strong></p>
             </div>
 
             {/* Payment Details */}
