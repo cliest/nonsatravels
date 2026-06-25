@@ -326,7 +326,7 @@ const Payment = () => {
 
       const response = await bookingAPI.create(bookingPayload);
       setCreatedBooking(response.data.data);
-      setBookingStep(2);
+      setBookingStep(3);
       toast.success("Booking created! Invoice sent to your email.");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create booking");
@@ -625,6 +625,7 @@ const Payment = () => {
           {/* Payment Form */}
           <div className="lg:col-span-3 space-y-6">
             {/* Step indicator */}
+            {bookingStep !== 3 && (
             <div className="flex items-center gap-3 mb-2">
               <div className={`flex items-center gap-2 ${bookingStep >= 1 ? 'text-primary' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${bookingStep >= 1 ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
@@ -636,6 +637,38 @@ const Payment = () => {
                 <span className="text-sm font-medium hidden sm:inline">Payment</span>
               </div>
             </div>
+            )}
+
+            {/* Step 3: Booking Confirmed — check email */}
+            {bookingStep === 3 && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FontAwesomeIcon icon={faCheck} className="text-green-600 text-3xl" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Booking Confirmed!</h2>
+                <p className="text-gray-600 mb-2">
+                  Your invoice <strong>{createdBooking?.invoiceNumber || ''}</strong> has been sent to
+                </p>
+                <p className="text-primary font-semibold text-lg mb-6">{personalInfo.email}</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6 text-left max-w-md mx-auto">
+                  <h3 className="font-semibold text-blue-800 mb-2">What happens next?</h3>
+                  <ol className="text-sm text-blue-700 space-y-2">
+                    <li className="flex gap-2"><span className="font-bold">1.</span> Check your email for the invoice and payment link</li>
+                    <li className="flex gap-2"><span className="font-bold">2.</span> Click the payment link to choose your payment method</li>
+                    <li className="flex gap-2"><span className="font-bold">3.</span> Complete payment to confirm your reservation</li>
+                    <li className="flex gap-2"><span className="font-bold">4.</span> Receive your receipt via email once payment is verified</li>
+                  </ol>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button onClick={() => navigate("/my-bookings")} className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent transition-colors font-medium">
+                    View My Bookings
+                  </button>
+                  <button onClick={() => navigate("/")} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Back to Home
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Step 1: Personal Information */}
             {bookingStep === 1 && (
