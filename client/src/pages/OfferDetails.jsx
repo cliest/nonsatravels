@@ -39,9 +39,15 @@ const OfferDetails = () => {
 
         setOffer(offerData);
 
-        // Fetch hotels
+        // Fetch linked hotel or all hotels
         const hotelsRes = await hotelAPI.getAll();
-        setHotels(hotelsRes.data.data.slice(0, 6));
+        const allHotels = hotelsRes.data.data || [];
+        if (offerData.hotelId) {
+          const linked = allHotels.filter(h => h.id === offerData.hotelId);
+          setHotels(linked.length > 0 ? linked : allHotels.slice(0, 3));
+        } else {
+          setHotels(allHotels.slice(0, 6));
+        }
       } catch (error) {
         const errorMessage = error.response?.data?.message || "Offer not found";
         toast.error(errorMessage);

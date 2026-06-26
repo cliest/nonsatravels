@@ -240,6 +240,7 @@ const AdminDashboard = () => {
     settingsAPI.get('cities').then(res => {
       if (res.data?.data?.value) setCityOptions(res.data.data.value);
     }).catch(() => {});
+    fetchPromoCodes();
   }, []);
 
   const fetchAllData = async () => {
