@@ -386,40 +386,6 @@ const Payment = () => {
       }
 
       // Card payment via Lipila
-      if (paymentMethod === "card") {
-        const response = await paymentAPI.initiateCard({
-          bookingId: createdBooking?.id || createdBooking?._id,
-          hotelId: bookingData.hotelId,
-          hotelName: bookingData.hotelName,
-          checkInDate: bookingData.checkInDate,
-          checkOutDate: bookingData.checkOutDate,
-          guests: bookingData.guests,
-          totalPrice: paymentTotal,
-          userName: `${personalInfo.firstName} ${personalInfo.lastName}`,
-          userEmail: personalInfo.email,
-          userPhone: personalInfo.phone,
-          specialRequests: personalInfo.specialRequests || null,
-          roomPreferences: `Address: ${personalInfo.address}, ${personalInfo.city}, ${personalInfo.country}`,
-          personalInfo: {
-            firstName: personalInfo.firstName,
-            lastName: personalInfo.lastName,
-            phone: personalInfo.phone,
-            city: personalInfo.city || "Lusaka",
-            address: personalInfo.address || "N/A",
-          },
-          ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
-          ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
-        });
-
-        const { checkoutUrl } = response.data.data;
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl;
-        } else {
-          toast.error("Could not get card payment URL. Please try again.");
-          setProcessing(false);
-        }
-        return;
-      }
     } catch (error) {
       console.error("Booking Error Details:", error.response?.data || error.message);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || "An error occurred";
@@ -928,7 +894,7 @@ const Payment = () => {
                   <label className="block text-sm font-bold mb-4 text-gray-700">
                     Select Payment Method
                   </label>
-                  <div className="grid grid-cols-3 gap-3 md:gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod("mobile_money")}
@@ -946,25 +912,6 @@ const Payment = () => {
                       />
                       <span className="text-xs md:text-sm font-semibold">Mobile Money</span>
                       <span className="text-[10px] text-gray-500 mt-1">MTN / Airtel / Zamtel</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("card")}
-                      className={`p-4 md:p-6 border-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-                        paymentMethod === "card"
-                          ? "border-purple-600 bg-purple-50 shadow-lg scale-105"
-                          : "border-gray-200 hover:border-purple-400 hover:shadow-md"
-                      }`}
-                    >
-                      <FontAwesomeIcon
-                        icon={faCreditCard}
-                        className={`text-3xl md:text-4xl mb-2 ${
-                          paymentMethod === "card" ? "text-purple-600" : "text-gray-400"
-                        }`}
-                      />
-                      <span className="text-xs md:text-sm font-semibold">Card</span>
-                      <span className="text-[10px] text-gray-500 mt-1">Visa / Mastercard</span>
                     </button>
 
                     <button
@@ -1033,21 +980,6 @@ const Payment = () => {
                   </div>
                 )}
 
-                {paymentMethod === "card" && (
-                  <div className="bg-purple-50 p-6 rounded-xl border-2 border-purple-200 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <FontAwesomeIcon icon={faCreditCard} className="text-4xl text-purple-600" />
-                      <div>
-                        <h4 className="font-bold text-gray-900">Card Payment</h4>
-                        <p className="text-sm text-gray-600">Visa &amp; Mastercard accepted — secured by 3D Secure</p>
-                      </div>
-                    </div>
-                    <div className="bg-purple-100 border border-purple-200 rounded-lg p-3 text-sm text-purple-800">
-                      <FontAwesomeIcon icon={faShield} className="mr-1" />
-                      You will be redirected to a secure Lipila checkout page to enter your card details. After payment you will be brought back here.
-                    </div>
-                  </div>
-                )}
 
                 {paymentMethod === "cash" && (
                   <div className="bg-green-50 p-6 rounded-xl border-2 border-green-200 mb-6">
@@ -1091,8 +1023,6 @@ const Payment = () => {
                       ? "bg-green-600 text-white hover:bg-green-700"
                       : paymentMethod === "mobile_money"
                       ? "bg-yellow-500 text-white hover:bg-yellow-600"
-                      : paymentMethod === "card"
-                      ? "bg-purple-600 text-white hover:bg-purple-700"
                       : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
@@ -1110,11 +1040,6 @@ const Payment = () => {
                     <>
                       <FontAwesomeIcon icon={faMobilePhone} className="mr-2" />
                       Pay with Mobile Money — ZK{(calculateTotalCost() * zmwRate).toLocaleString()}
-                    </>
-                  ) : paymentMethod === "card" ? (
-                    <>
-                      <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
-                      Pay with Card — {formatCurrency(calculateTotalCost())}
                     </>
                   ) : (
                     <>
