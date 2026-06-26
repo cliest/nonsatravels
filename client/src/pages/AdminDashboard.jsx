@@ -1197,15 +1197,16 @@ const AdminDashboard = () => {
   // Open edit modal
   const handleEditHotel = (hotel) => {
     setEditingHotel(hotel);
+    const dp = (() => { try { return typeof hotel.dynamicPricing === 'string' ? JSON.parse(hotel.dynamicPricing) : (hotel.dynamicPricing || {}); } catch { return {}; } })();
     setNewHotel({
-      hotelName: hotel.name,
-      address: hotel.address,
-      city: hotel.city,
+      hotelName: hotel.name || "",
+      address: hotel.address || "",
+      city: hotel.city || "",
       contact: hotel.contact || "",
-      roomType: hotel.roomType,
-      pricePerNight: hotel.pricePerNight.toString(),
-      totalRooms: (hotel.totalRooms || 10).toString(),
-      rating: hotel.rating.toString(),
+      roomType: hotel.roomType || "Double Bed",
+      pricePerNight: String(hotel.pricePerNight || 0),
+      totalRooms: String(hotel.totalRooms || 10),
+      rating: String(hotel.rating || 4.5),
       amenities: hotel.amenities || [],
       imageUrls: [
         hotel.images?.[0] || "",
@@ -1213,10 +1214,10 @@ const AdminDashboard = () => {
         hotel.images?.[2] || "",
         hotel.images?.[3] || "",
       ],
-      dynamicPricingEnabled: (() => { const dp = typeof hotel.dynamicPricing === 'string' ? JSON.parse(hotel.dynamicPricing) : hotel.dynamicPricing; return dp?.enabled !== false; })(),
-      peakSeasonMultiplier: (() => { const dp = typeof hotel.dynamicPricing === 'string' ? JSON.parse(hotel.dynamicPricing) : hotel.dynamicPricing; return (dp?.peakSeasonMultiplier || 1.5).toString(); })(),
-      lowOccupancyDiscount: (() => { const dp = typeof hotel.dynamicPricing === 'string' ? JSON.parse(hotel.dynamicPricing) : hotel.dynamicPricing; return (dp?.lowOccupancyDiscount || 0.9).toString(); })(),
-      highDemandMultiplier: (() => { const dp = typeof hotel.dynamicPricing === 'string' ? JSON.parse(hotel.dynamicPricing) : hotel.dynamicPricing; return (dp?.highDemandMultiplier || 1.3).toString(); })(),
+      dynamicPricingEnabled: dp.enabled !== false,
+      peakSeasonMultiplier: String(dp.peakSeasonMultiplier || 1.5),
+      lowOccupancyDiscount: String(dp.lowOccupancyDiscount || 0.9),
+      highDemandMultiplier: String(dp.highDemandMultiplier || 1.3),
       cancellationPolicy: hotel.cancellationPolicy || 'free_24h',
       roomTypes: hotel.roomTypes?.length > 0
         ? hotel.roomTypes.map(rt => ({
