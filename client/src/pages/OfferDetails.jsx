@@ -258,9 +258,13 @@ const OfferDetails = () => {
             <div className="bg-blue-50 border-l-4 border-blue-500 pl-6 py-4 rounded-r-lg">
               <h3 className="text-lg font-semibold text-blue-900 mb-2">How to Redeem</h3>
               <ol className="space-y-2 text-blue-800">
-                <li>1. Browse and select your preferred hotel</li>
+                {offer.hotelId && hotels.length > 0 ? (
+                  <li>1. Go to <strong>{hotels[0]?.name}</strong></li>
+                ) : (
+                  <li>1. Browse and select your preferred hotel</li>
+                )}
                 <li>2. Choose your dates and room preferences</li>
-                <li>3. Enter the offer code <span className="font-mono font-bold">{offerCode}</span> at checkout</li>
+                <li>3. Enter the promo code <span className="font-mono font-bold bg-blue-100 px-2 py-0.5 rounded">{offerCode}</span> at checkout</li>
                 <li>4. Enjoy your {offer.priceOff}% discount!</li>
               </ol>
             </div>
@@ -281,10 +285,11 @@ const OfferDetails = () => {
         {/* Available Hotels Section */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
               <FontAwesomeIcon icon={faHotel} className="text-accent" />
-              Available Hotels
+              {offer.hotelId ? 'This Offer Applies To' : 'Use This Offer At'}
             </h2>
+            {!offer.hotelId && (
             <Link
               to="/hotels"
               className="text-accent hover:text-accent-dark font-semibold flex items-center gap-2 transition-colors"
@@ -294,6 +299,7 @@ const OfferDetails = () => {
                 <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
