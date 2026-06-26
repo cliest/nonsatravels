@@ -25,6 +25,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import savedSearchRoutes from './routes/savedSearchRoutes.js';
 import destinationRoutes from './routes/destinationRoutes.js';
 import additionalServiceRoutes from './routes/additionalServiceRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 import { startBookingScheduler } from './utils/bookingScheduler.js';
 import { initializeSocket } from './utils/socketManager.js';
 import logger from './utils/logger.js';
@@ -124,6 +125,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/saved-searches', savedSearchRoutes);
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/services', additionalServiceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check route with detailed info
 app.get('/api/health', (req, res) => {

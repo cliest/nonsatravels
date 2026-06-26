@@ -494,6 +494,12 @@ model SavedSearch {
   @@index([userId])
 }
 
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+}
+
 model AdditionalService {
   id          String   @id @default(cuid())
   name        String   @unique

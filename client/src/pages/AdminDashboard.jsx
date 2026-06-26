@@ -40,7 +40,7 @@ import {
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI, destinationAPI, servicesAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI, destinationAPI, servicesAPI, settingsAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -208,6 +208,13 @@ const AdminDashboard = () => {
   const [editingService, setEditingService] = useState(null);
   const [serviceForm, setServiceForm] = useState({ name: "", label: "", cost: "", sortOrder: "0" });
 
+  // Settings
+  const [siteSettings, setSiteSettings] = useState({});
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [newRoomType, setNewRoomType] = useState("");
+
+  const [roomTypeOptions, setRoomTypeOptions] = useState(ROOM_TYPES);
+
   // Analytics date range
   const [analyticsRange, setAnalyticsRange] = useState("year");
 
@@ -223,6 +230,9 @@ const AdminDashboard = () => {
   // Fetch all data on mount
   useEffect(() => {
     fetchAllData();
+    settingsAPI.get('roomTypes').then(res => {
+      if (res.data?.data?.value) setRoomTypeOptions(res.data.data.value);
+    }).catch(() => {});
   }, []);
 
   const fetchAllData = async () => {
@@ -730,6 +740,31 @@ const AdminDashboard = () => {
       attractions: JSON.stringify(d.attractions || [], null, 2),
     });
     setShowDestModal(true);
+  };
+
+  // Settings Handlers
+  const fetchSettings = async () => {
+    setSettingsLoading(true);
+    try { const res = await settingsAPI.getAll(); if (res.data.success) setSiteSettings(res.data.data); }
+    catch { toast.error("Failed to load settings"); }
+    finally { setSettingsLoading(false); }
+  };
+
+  const saveRoomTypes = async (roomTypes) => {
+    try {
+      await settingsAPI.save('roomTypes', roomTypes);
+      setSiteSettings(prev => ({ ...prev, roomTypes }));
+      setRoomTypeOptions(roomTypes);
+      toast.success("Room types saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
+  const saveSetting = async (key, value) => {
+    try {
+      await settingsAPI.save(key, value);
+      setSiteSettings(prev => ({ ...prev, [key]: value }));
+      toast.success("Setting saved");
+    } catch { toast.error("Failed to save"); }
   };
 
   // Additional Services Handlers
@@ -1546,6 +1581,9 @@ const AdminDashboard = () => {
             <SidebarNavItem icon={faStar} label="Reviews" active={activeTab === "reviews"} onClick={() => { setActiveTab("reviews"); fetchAdminReviews(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faComments} label="Chat Support" active={activeTab === "chat"} onClick={() => { setActiveTab("chat"); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faUsers} label="Users" active={activeTab === "users"} onClick={() => { setActiveTab("users"); if (users.length === 0) fetchUsers(); setSidebarOpen(false); }} />
+
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">System</p>
+            <SidebarNavItem icon={faEllipsisV} label="Settings" active={activeTab === "settings"} onClick={() => { setActiveTab("settings"); fetchSettings(); setSidebarOpen(false); }} />
           </div>
         </nav>
 
@@ -1588,6 +1626,7 @@ const AdminDashboard = () => {
                activeTab === "users" ? "Users" :
                activeTab === "blog" ? "Blog Posts" :
                activeTab === "newsletter" ? "Newsletter" :
+               activeTab === "settings" ? "Settings" :
                activeTab === "services" ? "Additional Services" :
                activeTab === "destinations" ? "Destinations" :
                activeTab === "reviews" ? "Reviews" :
@@ -2697,6 +2736,119 @@ const AdminDashboard = () => {
                         </button>
                       </div>
                     )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Settings Tab */}
+            {activeTab === "settings" && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+
+                {settingsLoading ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                ) : (
+                  <>
+                    {/* Room Types */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Room Types</h3>
+                      <p className="text-sm text-gray-500 mb-4">Manage the room types available when creating hotels.</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(siteSettings.roomTypes || ROOM_TYPES).map((type, i) => (
+                          <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm">
+                            {type}
+                            <button
+                              onClick={() => {
+                                const updated = (siteSettings.roomTypes || ROOM_TYPES).filter((_, idx) => idx !== i);
+                                saveRoomTypes(updated);
+                              }}
+                              className="text-red-400 hover:text-red-600 ml-1"
+                            >×</button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newRoomType}
+                          onChange={(e) => setNewRoomType(e.target.value)}
+                          placeholder="New room type name..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newRoomType.trim()) {
+                              e.preventDefault();
+                              const current = siteSettings.roomTypes || ROOM_TYPES;
+                              if (!current.includes(newRoomType.trim())) {
+                                saveRoomTypes([...current, newRoomType.trim()]);
+                                setNewRoomType("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (!newRoomType.trim()) return;
+                            const current = siteSettings.roomTypes || ROOM_TYPES;
+                            if (!current.includes(newRoomType.trim())) {
+                              saveRoomTypes([...current, newRoomType.trim()]);
+                              setNewRoomType("");
+                            }
+                          }}
+                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-accent transition-colors"
+                        >Add</button>
+                      </div>
+                    </div>
+
+                    {/* Company Info */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Company Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                          <input type="text" value={siteSettings.companyInfo?.name || 'Nonsa Travels'}
+                            onChange={(e) => saveSetting('companyInfo', { ...siteSettings.companyInfo, name: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                          <input type="text" value={siteSettings.companyInfo?.phone || '+260 970 462 777'}
+                            onChange={(e) => saveSetting('companyInfo', { ...siteSettings.companyInfo, phone: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                          <input type="email" value={siteSettings.companyInfo?.email || 'info@nonsatravels.com'}
+                            onChange={(e) => saveSetting('companyInfo', { ...siteSettings.companyInfo, email: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                          <input type="text" value={siteSettings.companyInfo?.address || 'Kwacha Street, Chingola, Zambia'}
+                            onChange={(e) => saveSetting('companyInfo', { ...siteSettings.companyInfo, address: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Check-in/out Times */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Default Times</h3>
+                      <div className="grid grid-cols-2 gap-4 max-w-md">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Check-in Time</label>
+                          <input type="time" value={siteSettings.checkInTime || '14:00'}
+                            onChange={(e) => saveSetting('checkInTime', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Check-out Time</label>
+                          <input type="time" value={siteSettings.checkOutTime || '11:00'}
+                            onChange={(e) => saveSetting('checkOutTime', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -4113,7 +4265,7 @@ const AddHotelModal = ({
                         onChange={(e) => { const arr = [...newHotel.roomTypes]; arr[idx] = { ...arr[idx], name: e.target.value }; setNewHotel(prev => ({ ...prev, roomTypes: arr })); }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent"
                       >
-                        {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        {roomTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <div>

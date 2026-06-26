@@ -135,6 +135,14 @@ export const servicesAPI = {
   seed: () => api.post('/services/seed'),
 };
 
+// Settings API
+export const settingsAPI = {
+  getAll: () => api.get('/settings'),
+  get: (key) => api.get(`/settings/${key}`),
+  save: (key, value) => api.put('/settings', { key, value }),
+  reset: (key) => api.delete(`/settings/${key}`),
+};
+
 // Destination API
 export const destinationAPI = {
   getAll: () => api.get('/destinations'),
