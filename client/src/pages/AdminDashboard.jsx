@@ -3428,6 +3428,7 @@ const AdminDashboard = () => {
             handleAddHotel={handleAddHotel}
             setShowAddHotelModal={setShowAddHotelModal}
             availableAmenities={availableAmenities}
+            roomTypeOptions={roomTypeOptions}
             onDynamicPricingToggle={(checked) => setNewHotel(prev => ({ ...prev, dynamicPricingEnabled: checked }))}
           />
         )}
@@ -3444,6 +3445,7 @@ const AdminDashboard = () => {
             handleAddHotel={handleUpdateHotel}
             setShowAddHotelModal={setShowEditHotelModal}
             availableAmenities={availableAmenities}
+            roomTypeOptions={roomTypeOptions}
             isEditing={true}
             onDynamicPricingToggle={(checked) => setNewHotel(prev => ({ ...prev, dynamicPricingEnabled: checked }))}
           />
@@ -4169,6 +4171,7 @@ const AddHotelModal = ({
   handleAddHotel,
   setShowAddHotelModal,
   availableAmenities,
+  roomTypeOptions,
   isEditing = false,
   onDynamicPricingToggle,
 }) => {
