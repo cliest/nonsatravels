@@ -212,6 +212,7 @@ const AdminDashboard = () => {
   const [siteSettings, setSiteSettings] = useState({});
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [newRoomType, setNewRoomType] = useState("");
+  const [newAmenity, setNewAmenity] = useState("");
 
   const [roomTypeOptions, setRoomTypeOptions] = useState(ROOM_TYPES);
 
@@ -219,19 +220,17 @@ const AdminDashboard = () => {
   const [analyticsRange, setAnalyticsRange] = useState("year");
 
   // Available amenities
-  const availableAmenities = [
-    "Free WiFi",
-    "Free Breakfast",
-    "Room Service",
-    "Mountain View",
-    "Pool Access",
-  ];
+  const defaultAmenities = ["Free WiFi", "Free Breakfast", "Room Service", "Mountain View", "Pool Access"];
+  const [availableAmenities, setAvailableAmenities] = useState(defaultAmenities);
 
   // Fetch all data on mount
   useEffect(() => {
     fetchAllData();
     settingsAPI.get('roomTypes').then(res => {
       if (res.data?.data?.value) setRoomTypeOptions(res.data.data.value);
+    }).catch(() => {});
+    settingsAPI.get('amenities').then(res => {
+      if (res.data?.data?.value) setAvailableAmenities(res.data.data.value);
     }).catch(() => {});
   }, []);
 
@@ -756,6 +755,15 @@ const AdminDashboard = () => {
       setSiteSettings(prev => ({ ...prev, roomTypes }));
       setRoomTypeOptions(roomTypes);
       toast.success("Room types saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
+  const saveAmenities = async (amenities) => {
+    try {
+      await settingsAPI.save('amenities', amenities);
+      setSiteSettings(prev => ({ ...prev, amenities }));
+      setAvailableAmenities(amenities);
+      toast.success("Amenities saved");
     } catch { toast.error("Failed to save"); }
   };
 
@@ -2797,6 +2805,27 @@ const AdminDashboard = () => {
                           }}
                           className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-accent transition-colors"
                         >Add</button>
+                      </div>
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Amenities</h3>
+                      <p className="text-sm text-gray-500 mb-4">Manage the amenities available when creating hotels.</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(siteSettings.amenities || availableAmenities).map((amenity, i) => (
+                          <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm">
+                            {amenity}
+                            <button onClick={() => { const updated = (siteSettings.amenities || availableAmenities).filter((_, idx) => idx !== i); saveAmenities(updated); }} className="text-red-400 hover:text-red-600 ml-1">×</button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="text" value={newAmenity} onChange={(e) => setNewAmenity(e.target.value)} placeholder="New amenity name..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          onKeyDown={(e) => { if (e.key === 'Enter' && newAmenity.trim()) { e.preventDefault(); const current = siteSettings.amenities || availableAmenities; if (!current.includes(newAmenity.trim())) { saveAmenities([...current, newAmenity.trim()]); setNewAmenity(""); } } }} />
+                        <button onClick={() => { if (!newAmenity.trim()) return; const current = siteSettings.amenities || availableAmenities; if (!current.includes(newAmenity.trim())) { saveAmenities([...current, newAmenity.trim()]); setNewAmenity(""); } }}
+                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-accent transition-colors">Add</button>
                       </div>
                     </div>
 

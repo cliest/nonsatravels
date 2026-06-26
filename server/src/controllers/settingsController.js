@@ -7,6 +7,11 @@ const DEFAULTS = {
     "Presidential Suite", "1 Bedroom Suite", "Inter-Leading",
     "The Sunset House", "Island Bush Camp", "Three Rivers Camp",
   ],
+  amenities: [
+    "Free WiFi", "Free Breakfast", "Room Service", "Mountain View", "Pool Access",
+    "Parking", "Gym", "Spa", "Restaurant", "Bar", "Laundry", "AC",
+    "Garden View", "Waterfall View", "Airport Shuttle", "Pet Friendly",
+  ],
   companyInfo: {
     name: "Nonsa Travels",
     phone: "+260 970 462 777",
