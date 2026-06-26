@@ -253,10 +253,10 @@ const AdminDashboard = () => {
       console.log("- Testimonials:", testimonialsRes.data.data?.length || 0);
       console.log("Bookings data:", bookingsRes.data);
       
-      setHotels(hotelsRes.data.data);
-      setBookings(bookingsRes.data.data);
-      setOffers(offersRes.data.data);
-      setTestimonials(testimonialsRes.data.data);
+      setHotels(hotelsRes.data.data || []);
+      setBookings(bookingsRes.data.data || []);
+      setOffers(offersRes.data.data || []);
+      setTestimonials(testimonialsRes.data.data || []);
       
       console.log(" State updated with data");
     } catch (error) {
