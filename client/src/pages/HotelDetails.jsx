@@ -140,6 +140,7 @@ const HotelDetails = () => {
       const bookingData = {
         hotelId: hotel.id,
         hotelName: hotel.name,
+        hotelCity: hotel.city,
         checkInDate: checkInDate.toISOString(),
         checkOutDate: checkOutDate.toISOString(),
         guests,

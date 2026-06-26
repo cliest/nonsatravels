@@ -25,6 +25,7 @@ import { paymentAPI } from "../services/paymentAPI";
 import api from "../services/api";
 import { toast } from "../utils/toast";
 import { useAuth, useUser } from "../context/AuthContext";
+import { ZAMBIA_AIRPORTS, CITY_COORDINATES, haversineDistance, RATE_PER_KM } from "../utils/zambiaLocations";
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -64,6 +65,9 @@ const Payment = () => {
 
   const [availableServices, setAvailableServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState({});
+  const [selectedAirport, setSelectedAirport] = useState("");
+  const [transferDistance, setTransferDistance] = useState(0);
+  const [transferCost, setTransferCost] = useState(0);
 
   // Fetch live exchange rate and services
   useEffect(() => {
@@ -93,6 +97,7 @@ const Payment = () => {
         setBookingData({
           hotelId: hotel.id || b.hotelId,
           hotelName: hotel.name || 'Hotel',
+          hotelCity: hotel.city || '',
           checkInDate: b.checkInDate,
           checkOutDate: b.checkOutDate,
           guests: b.guests,
@@ -150,7 +155,30 @@ const Payment = () => {
   };
 
   const handleServiceToggle = (service) => {
-    setSelectedServices(prev => ({ ...prev, [service]: !prev[service] }));
+    const newVal = !selectedServices[service];
+    setSelectedServices(prev => ({ ...prev, [service]: newVal }));
+    if (service === 'airportTransfer' && !newVal) {
+      setSelectedAirport("");
+      setTransferDistance(0);
+      setTransferCost(0);
+    }
+  };
+
+  const handleAirportSelect = (airportCode) => {
+    setSelectedAirport(airportCode);
+    if (!airportCode || !bookingData) { setTransferDistance(0); setTransferCost(0); return; }
+    const airport = ZAMBIA_AIRPORTS.find(a => a.code === airportCode);
+    const hotelCity = bookingData.hotelCity || bookingData.hotelName?.split(' ').pop() || '';
+    const cityCoords = CITY_COORDINATES[hotelCity] || CITY_COORDINATES[bookingData.city] || null;
+    if (airport && cityCoords) {
+      const km = haversineDistance(airport.lat, airport.lng, cityCoords.lat, cityCoords.lng);
+      const cost = Math.round(km * RATE_PER_KM * 100) / 100;
+      setTransferDistance(km);
+      setTransferCost(cost);
+    } else {
+      setTransferDistance(0);
+      setTransferCost(0);
+    }
   };
 
   const validatePersonalInfo = () => {
@@ -171,7 +199,13 @@ const Payment = () => {
   const calculateSubtotal = () => {
     let additionalCost = 0;
     availableServices.forEach(svc => {
-      if (selectedServices[svc.name]) additionalCost += svc.cost;
+      if (selectedServices[svc.name]) {
+        if (svc.name === 'airportTransfer') {
+          additionalCost += transferCost;
+        } else {
+          additionalCost += svc.cost;
+        }
+      }
     });
     return bookingData.totalPrice + additionalCost;
   };
@@ -283,8 +317,13 @@ const Payment = () => {
       const selectedSvcList = [];
       availableServices.forEach(svc => {
         if (selectedServices[svc.name]) {
-          additionalCost += svc.cost;
-          selectedSvcList.push({ name: svc.name, cost: svc.cost });
+          const cost = svc.name === 'airportTransfer' ? transferCost : svc.cost;
+          additionalCost += cost;
+          selectedSvcList.push({
+            name: svc.name,
+            cost,
+            ...(svc.name === 'airportTransfer' ? { airport: selectedAirport, distance: transferDistance } : {}),
+          });
         }
       });
 
@@ -453,8 +492,8 @@ const Payment = () => {
                   </div>
                   {availableServices.filter(s => selectedServices[s.name]).map(svc => (
                     <div key={svc.id} className="flex justify-between items-center text-sm text-gray-600">
-                      <span>{svc.label}</span>
-                      <span>+{formatCurrency(svc.cost)}</span>
+                      <span>{svc.label}{svc.name === 'airportTransfer' && transferDistance > 0 ? ` (${transferDistance}km)` : ''}</span>
+                      <span>+{formatCurrency(svc.name === 'airportTransfer' ? transferCost : svc.cost)}</span>
                     </div>
                   ))}
                   {/* Promo Code Discount */}
@@ -734,21 +773,59 @@ const Payment = () => {
               </h2>
               <div className="space-y-3">
                 {availableServices.map(svc => (
-                  <label key={svc.id} className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <FontAwesomeIcon icon={faCheck} className="text-blue-600 text-lg" />
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{svc.label}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-blue-600">+${svc.cost}</span>
-                      <input
-                        type="checkbox"
-                        checked={selectedServices[svc.name] || false}
-                        onChange={() => handleServiceToggle(svc.name)}
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </label>
+                  <div key={svc.id}>
+                    <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <FontAwesomeIcon icon={faCheck} className="text-blue-600 text-lg" />
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{svc.label}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-blue-600">
+                          {svc.name === 'airportTransfer' ? (transferCost > 0 ? `+$${transferCost}` : '$1.2/km') : `+$${svc.cost}`}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={selectedServices[svc.name] || false}
+                          onChange={() => handleServiceToggle(svc.name)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </label>
+                    {svc.name === 'airportTransfer' && selectedServices.airportTransfer && (
+                      <div className="ml-4 mt-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select pickup airport</label>
+                        <select
+                          value={selectedAirport}
+                          onChange={(e) => handleAirportSelect(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="">Choose an airport...</option>
+                          {ZAMBIA_AIRPORTS.map(a => (
+                            <option key={a.code} value={a.code}>{a.name} ({a.city})</option>
+                          ))}
+                        </select>
+                        {transferDistance > 0 && (
+                          <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100 text-sm">
+                            <div className="flex justify-between text-gray-600">
+                              <span>Distance:</span>
+                              <span className="font-semibold">{transferDistance} km</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600 mt-1">
+                              <span>Rate:</span>
+                              <span>$1.20 / km</span>
+                            </div>
+                            <div className="flex justify-between text-primary font-bold mt-2 pt-2 border-t border-blue-100">
+                              <span>Transfer Cost:</span>
+                              <span>${transferCost}</span>
+                            </div>
+                          </div>
+                        )}
+                        {!selectedAirport && (
+                          <p className="text-xs text-amber-600 mt-2">Please select an airport to calculate transfer cost</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
