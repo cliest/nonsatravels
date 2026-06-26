@@ -213,8 +213,10 @@ const AdminDashboard = () => {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [newRoomType, setNewRoomType] = useState("");
   const [newAmenity, setNewAmenity] = useState("");
+  const [newCity, setNewCity] = useState("");
 
   const [roomTypeOptions, setRoomTypeOptions] = useState(ROOM_TYPES);
+  const [cityOptions, setCityOptions] = useState(cities);
 
   // Analytics date range
   const [analyticsRange, setAnalyticsRange] = useState("year");
@@ -231,6 +233,9 @@ const AdminDashboard = () => {
     }).catch(() => {});
     settingsAPI.get('amenities').then(res => {
       if (res.data?.data?.value) setAvailableAmenities(res.data.data.value);
+    }).catch(() => {});
+    settingsAPI.get('cities').then(res => {
+      if (res.data?.data?.value) setCityOptions(res.data.data.value);
     }).catch(() => {});
   }, []);
 
@@ -764,6 +769,15 @@ const AdminDashboard = () => {
       setSiteSettings(prev => ({ ...prev, amenities }));
       setAvailableAmenities(amenities);
       toast.success("Amenities saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
+  const saveCities = async (citiesList) => {
+    try {
+      await settingsAPI.save('cities', citiesList);
+      setSiteSettings(prev => ({ ...prev, cities: citiesList }));
+      setCityOptions(citiesList);
+      toast.success("Cities saved");
     } catch { toast.error("Failed to save"); }
   };
 
@@ -2829,6 +2843,27 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
+                    {/* Cities */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Cities</h3>
+                      <p className="text-sm text-gray-500 mb-4">Manage the cities available in the hotel form dropdown.</p>
+                      <div className="flex flex-wrap gap-2 mb-4 max-h-48 overflow-y-auto">
+                        {(siteSettings.cities || cityOptions).map((city, i) => (
+                          <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm">
+                            {city}
+                            <button onClick={() => { const updated = (siteSettings.cities || cityOptions).filter((_, idx) => idx !== i); saveCities(updated); }} className="text-red-400 hover:text-red-600 ml-1">×</button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="text" value={newCity} onChange={(e) => setNewCity(e.target.value)} placeholder="New city name..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          onKeyDown={(e) => { if (e.key === 'Enter' && newCity.trim()) { e.preventDefault(); const current = siteSettings.cities || cityOptions; if (!current.includes(newCity.trim())) { saveCities([...current, newCity.trim()].sort()); setNewCity(""); } } }} />
+                        <button onClick={() => { if (!newCity.trim()) return; const current = siteSettings.cities || cityOptions; if (!current.includes(newCity.trim())) { saveCities([...current, newCity.trim()].sort()); setNewCity(""); } }}
+                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-accent transition-colors">Add</button>
+                      </div>
+                    </div>
+
                     {/* Company Info */}
                     <div className="bg-white border border-gray-200 rounded-xl p-5">
                       <h3 className="text-lg font-bold text-gray-900 mb-4">Company Information</h3>
@@ -3429,6 +3464,7 @@ const AdminDashboard = () => {
             setShowAddHotelModal={setShowAddHotelModal}
             availableAmenities={availableAmenities}
             roomTypeOptions={roomTypeOptions}
+            cityOptions={cityOptions}
             onDynamicPricingToggle={(checked) => setNewHotel(prev => ({ ...prev, dynamicPricingEnabled: checked }))}
           />
         )}
@@ -4172,6 +4208,7 @@ const AddHotelModal = ({
   setShowAddHotelModal,
   availableAmenities,
   roomTypeOptions,
+  cityOptions,
   isEditing = false,
   onDynamicPricingToggle,
 }) => {
@@ -4225,7 +4262,7 @@ const AddHotelModal = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 >
                   <option value="">Select City</option>
-                  {cities.map((city) => (
+                  {cityOptions.map((city) => (
                     <option key={city} value={city}>
                       {city}
                     </option>

@@ -12,6 +12,18 @@ const DEFAULTS = {
     "Parking", "Gym", "Spa", "Restaurant", "Bar", "Laundry", "AC",
     "Garden View", "Waterfall View", "Airport Shuttle", "Pet Friendly",
   ],
+  cities: [
+    "Lusaka", "Kafue", "Chongwe", "Chilanga", "Chirundu",
+    "Ndola", "Kitwe", "Chingola", "Mufulira", "Luanshya", "Kalulushi",
+    "Livingstone", "Choma", "Mazabuka", "Monze", "Kalomo", "Siavonga",
+    "Kabwe", "Kapiri Mposhi", "Mkushi", "Serenje", "Mumbwa",
+    "Chipata", "Katete", "Lundazi", "Petauke",
+    "Kasama", "Mbala", "Mpika", "Chinsali", "Nakonde",
+    "Mansa", "Nchelenge", "Samfya", "Kawambwa",
+    "Mongu", "Senanga", "Kaoma", "Lukulu", "Kalabo",
+    "Solwezi", "Mwinilunga", "Zambezi", "Kasempa",
+    "Isoka", "Chama",
+  ],
   companyInfo: {
     name: "Nonsa Travels",
     phone: "+260 970 462 777",
