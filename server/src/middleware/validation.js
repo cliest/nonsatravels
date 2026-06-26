@@ -99,6 +99,9 @@ export const offerSchema = {
     priceOff: Joi.number().required().min(0),
     expiryDate: Joi.string().required(),
     image: Joi.string().uri().required(),
+    hotelId: Joi.string().allow('', null),
+    promoCode: Joi.string().allow('', null),
+    packageDetails: Joi.string().allow('', null),
     isActive: Joi.boolean().default(true),
   }),
   update: Joi.object({
@@ -107,6 +110,9 @@ export const offerSchema = {
     priceOff: Joi.number().min(0),
     expiryDate: Joi.string(),
     image: Joi.string().uri(),
+    hotelId: Joi.string().allow('', null),
+    promoCode: Joi.string().allow('', null),
+    packageDetails: Joi.string().allow('', null),
     isActive: Joi.boolean(),
   }),
 };
