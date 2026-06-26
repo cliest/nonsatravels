@@ -20,7 +20,7 @@ import {
   faHourglassHalf,
 } from "@fortawesome/free-solid-svg-icons";
 import { faWhatsapp } from "@fortawesome/free-brands-svg-icons";
-import { bookingAPI, promoAPI } from "../services/api";
+import { bookingAPI, promoAPI, servicesAPI } from "../services/api";
 import { paymentAPI } from "../services/paymentAPI";
 import api from "../services/api";
 import { toast } from "../utils/toast";
@@ -62,15 +62,20 @@ const Payment = () => {
     specialRequests: "",
   });
 
-  const [additionalServices, setAdditionalServices] = useState({
-    airportTransfer: false,
-    earlyCheckIn: false,
-    lateCheckOut: false,
-    extraBed: false,
-    breakfast: false,
-  });
+  const [availableServices, setAvailableServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState({});
 
-  // Fetch live exchange rate
+  // Fetch live exchange rate and services
+  useEffect(() => {
+    servicesAPI.getAll().then(res => {
+      const svcs = res.data.data || [];
+      setAvailableServices(svcs);
+      const initial = {};
+      svcs.forEach(s => { initial[s.name] = false; });
+      setSelectedServices(initial);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.get('/payments/exchange-rate').then(res => {
       if (res.data?.data?.USD_TO_ZMW) setZmwRate(res.data.data.USD_TO_ZMW);
@@ -145,10 +150,7 @@ const Payment = () => {
   };
 
   const handleServiceToggle = (service) => {
-    setAdditionalServices({
-      ...additionalServices,
-      [service]: !additionalServices[service],
-    });
+    setSelectedServices(prev => ({ ...prev, [service]: !prev[service] }));
   };
 
   const validatePersonalInfo = () => {
@@ -167,21 +169,10 @@ const Payment = () => {
   };
 
   const calculateSubtotal = () => {
-    const serviceCosts = {
-      airportTransfer: 50,
-      earlyCheckIn: 30,
-      lateCheckOut: 30,
-      extraBed: 25,
-      breakfast: 15,
-    };
-
     let additionalCost = 0;
-    Object.keys(additionalServices).forEach((service) => {
-      if (additionalServices[service]) {
-        additionalCost += serviceCosts[service];
-      }
+    availableServices.forEach(svc => {
+      if (selectedServices[svc.name]) additionalCost += svc.cost;
     });
-
     return bookingData.totalPrice + additionalCost;
   };
 
@@ -288,9 +279,14 @@ const Payment = () => {
     setProcessing(true);
 
     try {
-      const serviceCosts = { airportTransfer: 50, earlyCheckIn: 30, lateCheckOut: 30, extraBed: 25, breakfast: 15 };
       let additionalCost = 0;
-      Object.keys(additionalServices).forEach((s) => { if (additionalServices[s]) additionalCost += serviceCosts[s]; });
+      const selectedSvcList = [];
+      availableServices.forEach(svc => {
+        if (selectedServices[svc.name]) {
+          additionalCost += svc.cost;
+          selectedSvcList.push({ name: svc.name, cost: svc.cost });
+        }
+      });
 
       const totalAmount = ((bookingData.totalPrice || 0) + additionalCost) - getDiscount();
       if (!totalAmount || totalAmount <= 0) {
@@ -315,9 +311,7 @@ const Payment = () => {
         status: "pending_payment",
         ...(appliedPromo ? { promoCode: appliedPromo.code } : {}),
         ...(bookingData.roomTypeId ? { roomTypeId: bookingData.roomTypeId, roomTypeName: bookingData.roomTypeName } : {}),
-        additionalServices: Object.entries(additionalServices)
-          .filter(([, v]) => v)
-          .map(([k]) => ({ name: k, cost: serviceCosts[k] })),
+        additionalServices: selectedSvcList,
       };
 
       const response = await bookingAPI.create(bookingPayload);
@@ -457,36 +451,12 @@ const Payment = () => {
                     <span>Room Cost</span>
                     <span className="font-semibold">{formatCurrency(bookingData.totalPrice)}</span>
                   </div>
-                  {additionalServices.airportTransfer && (
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Airport Transfer</span>
-                      <span>+{formatCurrency(50)}</span>
+                  {availableServices.filter(s => selectedServices[s.name]).map(svc => (
+                    <div key={svc.id} className="flex justify-between items-center text-sm text-gray-600">
+                      <span>{svc.label}</span>
+                      <span>+{formatCurrency(svc.cost)}</span>
                     </div>
-                  )}
-                  {additionalServices.earlyCheckIn && (
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Early Check-in</span>
-                      <span>+{formatCurrency(30)}</span>
-                    </div>
-                  )}
-                  {additionalServices.lateCheckOut && (
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Late Check-out</span>
-                      <span>+{formatCurrency(30)}</span>
-                    </div>
-                  )}
-                  {additionalServices.extraBed && (
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Extra Bed</span>
-                      <span>+{formatCurrency(25)}</span>
-                    </div>
-                  )}
-                  {additionalServices.breakfast && (
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Breakfast (per day)</span>
-                      <span>+{formatCurrency(15)}</span>
-                    </div>
-                  )}
+                  ))}
                   {/* Promo Code Discount */}
                   {appliedPromo && (
                     <div className="flex justify-between items-center text-sm text-green-600 font-medium">
@@ -757,108 +727,32 @@ const Payment = () => {
             </div>
 
             {/* Additional Services */}
+            {availableServices.length > 0 && (
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
               <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-900">
                 Additional Services
               </h2>
-
-              <div className="space-y-4">
-                <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FontAwesomeIcon icon={faCar} className="text-blue-600 text-xl" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Airport Transfer</p>
-                      <p className="text-sm text-gray-600">Pick up and drop off service</p>
+              <div className="space-y-3">
+                {availableServices.map(svc => (
+                  <label key={svc.id} className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <FontAwesomeIcon icon={faCheck} className="text-blue-600 text-lg" />
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{svc.label}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-blue-600">+$50</span>
-                    <input
-                      type="checkbox"
-                      checked={additionalServices.airportTransfer}
-                      onChange={() => handleServiceToggle("airportTransfer")}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FontAwesomeIcon icon={faCheck} className="text-green-600 text-xl" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Early Check-in</p>
-                      <p className="text-sm text-gray-600">Before 12:00 PM</p>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-blue-600">+${svc.cost}</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedServices[svc.name] || false}
+                        onChange={() => handleServiceToggle(svc.name)}
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-blue-600">+$30</span>
-                    <input
-                      type="checkbox"
-                      checked={additionalServices.earlyCheckIn}
-                      onChange={() => handleServiceToggle("earlyCheckIn")}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FontAwesomeIcon icon={faCheck} className="text-orange-600 text-xl" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Late Check-out</p>
-                      <p className="text-sm text-gray-600">After 2:00 PM</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-blue-600">+$30</span>
-                    <input
-                      type="checkbox"
-                      checked={additionalServices.lateCheckOut}
-                      onChange={() => handleServiceToggle("lateCheckOut")}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FontAwesomeIcon icon={faUser} className="text-purple-600 text-xl" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Extra Bed</p>
-                      <p className="text-sm text-gray-600">Additional bed in room</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-blue-600">+$25</span>
-                    <input
-                      type="checkbox"
-                      checked={additionalServices.extraBed}
-                      onChange={() => handleServiceToggle("extraBed")}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FontAwesomeIcon icon={faUtensils} className="text-red-600 text-xl" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Daily Breakfast</p>
-                      <p className="text-sm text-gray-600">Buffet breakfast per day</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-blue-600">+$15/day</span>
-                    <input
-                      type="checkbox"
-                      checked={additionalServices.breakfast}
-                      onChange={() => handleServiceToggle("breakfast")}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </label>
+                  </label>
+                ))}
               </div>
             </div>
+            )}
 
             {/* Confirm Booking Button */}
             <button

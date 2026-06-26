@@ -40,7 +40,7 @@ import {
 import { cities } from "../assets/assets";
 import { ROOM_TYPES } from "../utils/constants";
 import PropTypes from "prop-types";
-import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI, destinationAPI } from "../services/api";
+import { hotelAPI, bookingAPI, offerAPI, testimonialAPI, authAPI, promoAPI, newsletterAPI, reviewAPI, destinationAPI, servicesAPI } from "../services/api";
 import { blogAPI } from "../services/blogAPI";
 import { toast } from "../utils/toast";
 import ImageUpload from "../components/ImageUpload";
@@ -200,6 +200,13 @@ const AdminDashboard = () => {
   const [showDestModal, setShowDestModal] = useState(false);
   const [editingDest, setEditingDest] = useState(null);
   const [destForm, setDestForm] = useState({ name: "", image: "", description: "", cities: "", attractions: "[]" });
+
+  // Additional Services Management
+  const [adminServices, setAdminServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceForm, setServiceForm] = useState({ name: "", label: "", cost: "", sortOrder: "0" });
 
   // Analytics date range
   const [analyticsRange, setAnalyticsRange] = useState("year");
@@ -723,6 +730,35 @@ const AdminDashboard = () => {
       attractions: JSON.stringify(d.attractions || [], null, 2),
     });
     setShowDestModal(true);
+  };
+
+  // Additional Services Handlers
+  const fetchAdminServices = async () => {
+    setServicesLoading(true);
+    try { const res = await servicesAPI.getAllAdmin(); if (res.data.success) setAdminServices(res.data.data); }
+    catch { toast.error("Failed to load services"); }
+    finally { setServicesLoading(false); }
+  };
+
+  const handleServiceSubmit = async (e) => {
+    e.preventDefault();
+    const payload = { name: serviceForm.name, label: serviceForm.label, cost: parseFloat(serviceForm.cost), sortOrder: parseInt(serviceForm.sortOrder) || 0, isActive: true };
+    try {
+      if (editingService) { await servicesAPI.update(editingService.id, payload); toast.success("Service updated"); }
+      else { await servicesAPI.create(payload); toast.success("Service created"); }
+      setShowServiceModal(false); setEditingService(null); fetchAdminServices();
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to save service"); }
+  };
+
+  const handleDeleteService = async (id) => {
+    if (!window.confirm("Delete this service?")) return;
+    try { await servicesAPI.delete(id); toast.success("Deleted"); fetchAdminServices(); }
+    catch { toast.error("Failed to delete"); }
+  };
+
+  const handleSeedServices = async () => {
+    try { const res = await servicesAPI.seed(); toast.success(res.data.message); fetchAdminServices(); }
+    catch { toast.error("Failed to seed services"); }
   };
 
   const filterBookingsByRange = (list) => {
@@ -1504,6 +1540,7 @@ const AdminDashboard = () => {
             <SidebarNavItem icon={faBlog} label="Blog" active={activeTab === "blog"} onClick={() => { setActiveTab("blog"); if (blogPosts.length === 0) fetchBlogPosts(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faTag} label="Promo Codes" active={activeTab === "promos"} onClick={() => { setActiveTab("promos"); if (promoCodes.length === 0) fetchPromoCodes(); setSidebarOpen(false); }} />
             <SidebarNavItem icon={faNewspaper} label="Newsletter" active={activeTab === "newsletter"} onClick={() => { setActiveTab("newsletter"); if (subscribers.length === 0) fetchSubscribers(); setSidebarOpen(false); }} />
+            <SidebarNavItem icon={faTag} label="Services" active={activeTab === "services"} onClick={() => { setActiveTab("services"); fetchAdminServices(); setSidebarOpen(false); }} />
 
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pt-4 pb-1">Community</p>
             <SidebarNavItem icon={faStar} label="Reviews" active={activeTab === "reviews"} onClick={() => { setActiveTab("reviews"); fetchAdminReviews(); setSidebarOpen(false); }} />
@@ -1551,6 +1588,7 @@ const AdminDashboard = () => {
                activeTab === "users" ? "Users" :
                activeTab === "blog" ? "Blog Posts" :
                activeTab === "newsletter" ? "Newsletter" :
+               activeTab === "services" ? "Additional Services" :
                activeTab === "destinations" ? "Destinations" :
                activeTab === "reviews" ? "Reviews" :
                "Promo Codes"}
@@ -2660,6 +2698,92 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {/* Additional Services Tab */}
+            {activeTab === "services" && (
+              <div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Additional Services</h2>
+                  <div className="flex gap-2">
+                    {adminServices.length === 0 && (
+                      <button onClick={handleSeedServices} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
+                        Seed Defaults
+                      </button>
+                    )}
+                    <button onClick={() => { setEditingService(null); setServiceForm({ name: "", label: "", cost: "", sortOrder: "0" }); setShowServiceModal(true); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors">
+                      <FontAwesomeIcon icon={faPlus} /> Add Service
+                    </button>
+                  </div>
+                </div>
+
+                {servicesLoading ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                ) : adminServices.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <FontAwesomeIcon icon={faTag} className="text-5xl mb-3 text-gray-200" />
+                    <p className="font-medium">No services yet</p>
+                    <p className="text-sm mt-1">Click "Seed Defaults" to add Airport Transfer, Breakfast, etc.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {adminServices.map(svc => (
+                      <div key={svc.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-gray-900">{svc.label}</h3>
+                          <p className="text-sm text-gray-500">Key: {svc.name} · ${svc.cost} · Order: {svc.sortOrder}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingService(svc); setServiceForm({ name: svc.name, label: svc.label, cost: String(svc.cost), sortOrder: String(svc.sortOrder) }); setShowServiceModal(true); }}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><FontAwesomeIcon icon={faEdit} /></button>
+                          <button onClick={() => handleDeleteService(svc.id)}
+                            className="p-1.5 text-red-400 hover:bg-red-50 rounded"><FontAwesomeIcon icon={faTrash} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {showServiceModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                      <div className="px-6 py-4 border-b flex items-center justify-between">
+                        <h2 className="text-lg font-bold">{editingService ? "Edit Service" : "Add Service"}</h2>
+                        <button onClick={() => setShowServiceModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"><FontAwesomeIcon icon={faTimes} /></button>
+                      </div>
+                      <form onSubmit={handleServiceSubmit} className="p-6 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Key (unique, no spaces) *</label>
+                          <input required type="text" value={serviceForm.name} onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value.replace(/\s/g, '') })}
+                            placeholder="e.g. airportTransfer" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Display Name *</label>
+                          <input required type="text" value={serviceForm.label} onChange={(e) => setServiceForm({ ...serviceForm, label: e.target.value })}
+                            placeholder="e.g. Airport Transfer" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Price (USD) *</label>
+                            <input required type="number" min="0" step="0.01" value={serviceForm.cost} onChange={(e) => setServiceForm({ ...serviceForm, cost: e.target.value })}
+                              placeholder="50" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                            <input type="number" value={serviceForm.sortOrder} onChange={(e) => setServiceForm({ ...serviceForm, sortOrder: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button type="button" onClick={() => setShowServiceModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                          <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent transition-colors">{editingService ? "Update" : "Create"}</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

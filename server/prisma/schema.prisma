@@ -494,6 +494,18 @@ model SavedSearch {
   @@index([userId])
 }
 
+model AdditionalService {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  label       String
+  cost        Float
+  icon        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Destination {
   id          String   @id @default(cuid())
   name        String   @unique

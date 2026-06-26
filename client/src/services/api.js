@@ -125,6 +125,16 @@ export const savedSearchAPI = {
   delete: (id) => api.delete(`/saved-searches/${id}`),
 };
 
+// Additional Services API
+export const servicesAPI = {
+  getAll: () => api.get('/services'),
+  getAllAdmin: () => api.get('/services/admin'),
+  create: (data) => api.post('/services', data),
+  update: (id, data) => api.put(`/services/${id}`, data),
+  delete: (id) => api.delete(`/services/${id}`),
+  seed: () => api.post('/services/seed'),
+};
+
 // Destination API
 export const destinationAPI = {
   getAll: () => api.get('/destinations'),
