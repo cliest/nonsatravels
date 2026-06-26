@@ -4,10 +4,19 @@
 export const ROOM_TYPES = [
   "Single Bed",
   "Double Bed",
+  "Standard Room",
+  "Superior Room",
+  "Club Room",
   "Executive Room",
   "Family Suite",
   "Deluxe Suite",
+  "Luxury Suite",
   "Presidential Suite",
+  "1 Bedroom Suite",
+  "Inter-Leading",
+  "The Sunset House",
+  "Island Bush Camp",
+  "Three Rivers Camp",
 ];
 
 // Sort Options

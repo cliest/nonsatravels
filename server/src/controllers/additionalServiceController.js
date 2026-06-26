@@ -56,7 +56,7 @@ export const seedServices = async (req, res) => {
     if (existing > 0) return res.status(200).json({ success: true, message: 'Services already seeded', count: existing });
 
     const defaults = [
-      { name: 'airportTransfer', label: 'Airport Transfer', cost: 0, icon: 'faCar', sortOrder: 0 },
+      { name: 'airportTransfer', label: 'Airport Transfer', cost: 1.2, icon: 'faCar', sortOrder: 0 },
       { name: 'earlyCheckIn', label: 'Early Check-in', cost: 30, icon: 'faClock', sortOrder: 1 },
       { name: 'lateCheckOut', label: 'Late Check-out', cost: 30, icon: 'faClock', sortOrder: 2 },
       { name: 'extraBed', label: 'Extra Bed', cost: 25, icon: 'faBed', sortOrder: 3 },

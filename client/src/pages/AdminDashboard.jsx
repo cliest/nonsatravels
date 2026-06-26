@@ -2734,7 +2734,7 @@ const AdminDashboard = () => {
                       <div key={svc.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
                         <div>
                           <h3 className="font-bold text-gray-900">{svc.label}</h3>
-                          <p className="text-sm text-gray-500">Key: {svc.name} · {svc.name === 'airportTransfer' ? '$1.2/km (distance-based)' : `$${svc.cost}`} · Order: {svc.sortOrder}</p>
+                          <p className="text-sm text-gray-500">Key: {svc.name} · {svc.name === 'airportTransfer' ? `$${svc.cost}/km (distance-based)` : `$${svc.cost}`} · Order: {svc.sortOrder}</p>
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => { setEditingService(svc); setServiceForm({ name: svc.name, label: svc.label, cost: String(svc.cost), sortOrder: String(svc.sortOrder) }); setShowServiceModal(true); }}
@@ -2767,15 +2767,14 @@ const AdminDashboard = () => {
                         </div>
                         {serviceForm.name === 'airportTransfer' && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 mb-3">
-                            Price is calculated automatically: <strong>$1.20/km</strong> based on distance from airport to hotel.
+                            Set the <strong>rate per kilometer</strong>. Total cost is calculated as: distance (km) × rate.
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{serviceForm.name === 'airportTransfer' ? 'Base Price (USD)' : 'Price (USD) *'}</label>
-                            <input type="number" min="0" step="0.01" value={serviceForm.cost} onChange={(e) => setServiceForm({ ...serviceForm, cost: e.target.value })}
-                              placeholder={serviceForm.name === 'airportTransfer' ? '0' : '50'}
-                              required={serviceForm.name !== 'airportTransfer'}
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{serviceForm.name === 'airportTransfer' ? 'Rate per km (USD) *' : 'Price (USD) *'}</label>
+                            <input required type="number" min="0" step="0.01" value={serviceForm.cost} onChange={(e) => setServiceForm({ ...serviceForm, cost: e.target.value })}
+                              placeholder={serviceForm.name === 'airportTransfer' ? '1.2' : '50'}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                           </div>
                           <div>

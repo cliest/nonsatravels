@@ -69,4 +69,3 @@ export const haversineDistance = (lat1, lng1, lat2, lng2) => {
   return Math.round(R * c * 1.3);
 };
 
-export const RATE_PER_KM = 1.2;

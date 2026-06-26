@@ -25,7 +25,7 @@ import { paymentAPI } from "../services/paymentAPI";
 import api from "../services/api";
 import { toast } from "../utils/toast";
 import { useAuth, useUser } from "../context/AuthContext";
-import { ZAMBIA_AIRPORTS, CITY_COORDINATES, haversineDistance, RATE_PER_KM } from "../utils/zambiaLocations";
+import { ZAMBIA_AIRPORTS, CITY_COORDINATES, haversineDistance } from "../utils/zambiaLocations";
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -164,15 +164,21 @@ const Payment = () => {
     }
   };
 
+  const getTransferRate = () => {
+    const svc = availableServices.find(s => s.name === 'airportTransfer');
+    return svc?.cost || 1.2;
+  };
+
   const handleAirportSelect = (airportCode) => {
     setSelectedAirport(airportCode);
     if (!airportCode || !bookingData) { setTransferDistance(0); setTransferCost(0); return; }
     const airport = ZAMBIA_AIRPORTS.find(a => a.code === airportCode);
-    const hotelCity = bookingData.hotelCity || bookingData.hotelName?.split(' ').pop() || '';
-    const cityCoords = CITY_COORDINATES[hotelCity] || CITY_COORDINATES[bookingData.city] || null;
+    const hotelCity = bookingData.hotelCity || bookingData.city || '';
+    const cityCoords = CITY_COORDINATES[hotelCity] || null;
     if (airport && cityCoords) {
       const km = haversineDistance(airport.lat, airport.lng, cityCoords.lat, cityCoords.lng);
-      const cost = Math.round(km * RATE_PER_KM * 100) / 100;
+      const rate = getTransferRate();
+      const cost = Math.round(km * rate * 100) / 100;
       setTransferDistance(km);
       setTransferCost(cost);
     } else {
@@ -781,7 +787,7 @@ const Payment = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="font-bold text-blue-600">
-                          {svc.name === 'airportTransfer' ? (transferCost > 0 ? `+$${transferCost}` : '$1.2/km') : `+$${svc.cost}`}
+                          {svc.name === 'airportTransfer' ? (transferCost > 0 ? `+$${transferCost}` : `$${svc.cost}/km`) : `+$${svc.cost}`}
                         </span>
                         <input
                           type="checkbox"
@@ -812,7 +818,7 @@ const Payment = () => {
                             </div>
                             <div className="flex justify-between text-gray-600 mt-1">
                               <span>Rate:</span>
-                              <span>$1.20 / km</span>
+                              <span>${getTransferRate().toFixed(2)} / km</span>
                             </div>
                             <div className="flex justify-between text-primary font-bold mt-2 pt-2 border-t border-blue-100">
                               <span>Transfer Cost:</span>
