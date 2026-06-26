@@ -3483,6 +3483,7 @@ const AdminDashboard = () => {
             setShowAddHotelModal={setShowEditHotelModal}
             availableAmenities={availableAmenities}
             roomTypeOptions={roomTypeOptions}
+            cityOptions={cityOptions}
             isEditing={true}
             onDynamicPricingToggle={(checked) => setNewHotel(prev => ({ ...prev, dynamicPricingEnabled: checked }))}
           />
