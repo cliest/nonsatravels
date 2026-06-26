@@ -54,9 +54,10 @@ const OfferDetails = () => {
     fetchOfferDetails();
   }, [id, navigate]);
 
+  const offerCode = offer?.promoCode || `OFFER${offer?.priceOff}`;
+
   const handleCopyCode = () => {
-    const code = `OFFER${offer.priceOff}`;
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(offerCode);
     setCopiedCode(true);
     toast.success("Offer code copied!");
     setTimeout(() => setCopiedCode(false), 2000);
@@ -193,7 +194,7 @@ const OfferDetails = () => {
               <div className="text-center md:text-left">
                 <p className="text-sm uppercase tracking-wider mb-2 opacity-90">Your Exclusive Code</p>
                 <h2 className="text-4xl md:text-5xl font-bold tracking-wider font-mono">
-                  OFFER{offer.priceOff}
+                  {offerCode}
                 </h2>
                 <p className="text-sm mt-2 opacity-90">Use this code when booking to get {offer.priceOff}% off</p>
               </div>
@@ -223,6 +224,14 @@ const OfferDetails = () => {
                   <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 mt-1" />
                   <span className="text-gray-700">{offer.priceOff}% discount on room rates</span>
                 </li>
+                {offer.packageDetails && offer.packageDetails.split(',').map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 mt-1" />
+                    <span className="text-gray-700">{item.trim()}</span>
+                  </li>
+                ))}
+                {!offer.packageDetails && (
+                <>
                 <li className="flex items-start gap-3">
                   <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 mt-1" />
                   <span className="text-gray-700">Valid for all available room types</span>
@@ -231,6 +240,8 @@ const OfferDetails = () => {
                   <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 mt-1" />
                   <span className="text-gray-700">No minimum stay required</span>
                 </li>
+                </>
+                )}
                 <li className="flex items-start gap-3">
                   <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 mt-1" />
                   <span className="text-gray-700">Free cancellation up to 24 hours before check-in</span>
@@ -243,7 +254,7 @@ const OfferDetails = () => {
               <ol className="space-y-2 text-blue-800">
                 <li>1. Browse and select your preferred hotel</li>
                 <li>2. Choose your dates and room preferences</li>
-                <li>3. Enter the offer code <span className="font-mono font-bold">OFFER{offer.priceOff}</span> at checkout</li>
+                <li>3. Enter the offer code <span className="font-mono font-bold">{offerCode}</span> at checkout</li>
                 <li>4. Enjoy your {offer.priceOff}% discount!</li>
               </ol>
             </div>

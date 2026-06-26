@@ -243,6 +243,9 @@ model Offer {
   priceOff    Float
   expiryDate  String
   image       String
+  hotelId     String?
+  promoCode   String?
+  packageDetails String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

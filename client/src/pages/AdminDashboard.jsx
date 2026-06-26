@@ -104,6 +104,9 @@ const AdminDashboard = () => {
     priceOff: "",
     expiryDate: "",
     imageUrl: "",
+    hotelId: "",
+    promoCode: "",
+    packageDetails: "",
   });
 
   // Testimonials Management
@@ -951,18 +954,15 @@ const AdminDashboard = () => {
         priceOff: parseInt(newOffer.priceOff),
         expiryDate: newOffer.expiryDate,
         image: newOffer.imageUrl,
+        hotelId: newOffer.hotelId || null,
+        promoCode: newOffer.promoCode || null,
+        packageDetails: newOffer.packageDetails || null,
         isActive: true,
       };
 
       const response = await offerAPI.create(offerData);
       setOffers((prev) => [response.data.data, ...prev]);
-      setNewOffer({
-        title: "",
-        description: "",
-        priceOff: "",
-        expiryDate: "",
-        imageUrl: "",
-      });
+      setNewOffer({ title: "", description: "", priceOff: "", expiryDate: "", imageUrl: "", hotelId: "", promoCode: "", packageDetails: "" });
       setShowAddOfferModal(false);
       toast.success("Offer added successfully!");
     } catch (error) {
@@ -977,8 +977,11 @@ const AdminDashboard = () => {
       title: offer.title,
       description: offer.description,
       priceOff: offer.priceOff.toString(),
-      expiryDate: offer.expiryDate.split('T')[0], // Format date for input
+      expiryDate: offer.expiryDate.split('T')[0],
       imageUrl: offer.image,
+      hotelId: offer.hotelId || "",
+      promoCode: offer.promoCode || "",
+      packageDetails: offer.packageDetails || "",
     });
     setShowEditOfferModal(true);
   };
@@ -999,6 +1002,9 @@ const AdminDashboard = () => {
         priceOff: parseInt(newOffer.priceOff),
         expiryDate: newOffer.expiryDate,
         image: newOffer.imageUrl,
+        hotelId: newOffer.hotelId || null,
+        promoCode: newOffer.promoCode || null,
+        packageDetails: newOffer.packageDetails || null,
         isActive: true,
       };
 
@@ -1008,13 +1014,7 @@ const AdminDashboard = () => {
           offer.id === editingOffer.id ? response.data.data : offer
         )
       );
-      setNewOffer({
-        title: "",
-        description: "",
-        priceOff: "",
-        expiryDate: "",
-        imageUrl: "",
-      });
+      setNewOffer({ title: "", description: "", priceOff: "", expiryDate: "", imageUrl: "", hotelId: "", promoCode: "", packageDetails: "" });
       setShowEditOfferModal(false);
       setEditingOffer(null);
       toast.success("Offer updated successfully!");
@@ -3495,6 +3495,8 @@ const AdminDashboard = () => {
             handleOfferImageSelect={handleOfferImageSelect}
             handleAddOffer={handleAddOffer}
             setShowAddOfferModal={setShowAddOfferModal}
+            hotels={hotels}
+            promoCodes={promoCodes}
           />
         )}
 
@@ -3506,6 +3508,8 @@ const AdminDashboard = () => {
             handleOfferImageSelect={handleOfferImageSelect}
             handleAddOffer={handleEditOffer}
             setShowAddOfferModal={setShowEditOfferModal}
+            hotels={hotels}
+            promoCodes={promoCodes}
             isEditing={true}
           />
         )}
@@ -5317,6 +5321,8 @@ const AddOfferModal = ({
   handleOfferImageSelect,
   handleAddOffer,
   setShowAddOfferModal,
+  hotels = [],
+  promoCodes = [],
   isEditing = false,
 }) => {
   return (
@@ -5421,6 +5427,35 @@ const AddOfferModal = ({
             <p className="text-xs text-gray-500 mt-2">
                Use high-quality promotional images (max 2MB)
             </p>
+          </div>
+
+          {/* Hotel & Promo Code */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hotel (optional)</label>
+              <select name="hotelId" value={newOffer.hotelId} onChange={handleOfferInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                <option value="">All Hotels</option>
+                {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Link to a specific hotel or leave blank for all</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Promo Code (optional)</label>
+              <select name="promoCode" value={newOffer.promoCode} onChange={handleOfferInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent">
+                <option value="">No promo code</option>
+                {promoCodes.map(p => <option key={p.id} value={p.code}>{p.code} — {p.discountType === 'percentage' ? `${p.discountValue}%` : `$${p.discountValue}`} off</option>)}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Customers can use this code when booking</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Package Details (optional)</label>
+            <textarea name="packageDetails" value={newOffer.packageDetails} onChange={handleOfferInputChange}
+              placeholder="e.g., Includes: 2 nights stay, airport transfer, breakfast, spa treatment..."
+              rows="2" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent" />
           </div>
 
           {/* Preview */}
