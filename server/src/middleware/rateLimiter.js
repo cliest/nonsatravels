@@ -48,4 +48,17 @@ export const bookingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Limiter for avatar uploads — not credential-sensitive like authLimiter's targets,
+// but still worth capping against storage-spam abuse of an authenticated session.
+export const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // Limit each IP to 20 avatar changes per hour
+  message: {
+    success: false,
+    message: 'Too many photo updates, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default apiLimiter;

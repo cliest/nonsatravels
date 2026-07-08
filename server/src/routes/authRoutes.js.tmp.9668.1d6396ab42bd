@@ -13,7 +13,7 @@ import {
   passwordResetEmail,
   passwordChangedEmail,
 } from '../utils/authEmailTemplates.js';
-import { authLimiter, uploadLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -211,7 +211,7 @@ router.put('/profile', async (req, res) => {
 });
 
 // @route   PUT /api/auth/password
-router.put('/password', authLimiter, async (req, res) => {
+router.put('/password', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Not authorized' });
@@ -364,9 +364,7 @@ router.post('/google', authLimiter, async (req, res) => {
   try {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ success: false, message: 'Google credential is required' });
-
     if (!process.env.GOOGLE_CLIENT_ID) {
-      console.error('GOOGLE_CLIENT_ID is not configured — refusing to accept Google sign-in');
       return res.status(500).json({ success: false, message: 'Google sign-in is not configured on the server' });
     }
 
@@ -374,12 +372,11 @@ router.post('/google', authLimiter, async (req, res) => {
     try {
       googleUser = await verifyGoogleIdToken(credential);
     } catch (verifyErr) {
-      console.warn('Rejected invalid Google credential:', verifyErr.message);
       return res.status(401).json({ success: false, message: 'Invalid Google credential' });
     }
 
     if (!googleUser.email) return res.status(400).json({ success: false, message: 'Could not get email from Google account' });
-    if (!googleUser.email_verified) return res.status(400).json({ success: false, message: 'Google email is not verified' });
+    if (!googleUser.email_verified) return res.status(400).json({ success: false, message: 'Google account email is not verified' });
 
     let user = await prisma.user.findUnique({ where: { email: googleUser.email } });
 
@@ -419,7 +416,7 @@ router.post('/google', authLimiter, async (req, res) => {
 });
 
 // @route   POST /api/auth/facebook
-router.post('/facebook', authLimiter, async (req, res) => {
+router.post('/facebook', async (req, res) => {
   try {
     const { code, redirectUri } = req.body;
     if (!code) return res.status(400).json({ success: false, message: 'Facebook authorization code is required' });
@@ -482,18 +479,17 @@ router.post('/facebook', authLimiter, async (req, res) => {
 });
 
 // @route   POST /api/auth/apple
-router.post('/apple', authLimiter, async (req, res) => {
+router.post('/apple', async (req, res) => {
   try {
     const { idToken, user: appleUserData } = req.body;
     if (!idToken) return res.status(400).json({ success: false, message: 'Apple authorization data is required' });
 
-    let appleUser;
-    try {
-      appleUser = await verifyAppleIdToken(idToken);
-    } catch (verifyErr) {
-      console.warn('Rejected invalid Apple credential:', verifyErr.message);
-      return res.status(401).json({ success: false, message: 'Invalid Apple credential' });
-    }
+    const base64Url = idToken.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      Buffer.from(base64, 'base64').toString().split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    );
+    const appleUser = JSON.parse(jsonPayload);
 
     if (!appleUser.email) return res.status(400).json({ success: false, message: 'Could not get email from Apple account' });
 
@@ -538,7 +534,7 @@ router.post('/apple', authLimiter, async (req, res) => {
 });
 
 // @route   PUT /api/auth/avatar
-router.put('/avatar', uploadLimiter, async (req, res) => {
+router.put('/avatar', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Not authorized' });
@@ -567,7 +563,7 @@ router.put('/avatar', uploadLimiter, async (req, res) => {
 });
 
 // @route   DELETE /api/auth/avatar
-router.delete('/avatar', uploadLimiter, async (req, res) => {
+router.delete('/avatar', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ success: false, message: 'Not authorized' });
